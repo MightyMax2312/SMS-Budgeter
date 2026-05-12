@@ -10,6 +10,11 @@ class BankMessageParser {
     fun parseBankSms(sms: SmsMessage): Transaction? {
         val bankName = BankRegistry.identifyBank(sms.address, sms.body) ?: return null
         val amount = extractAmount(sms.body) ?: return null
+
+        // Skip UPI Mandate messages — they are requests, not actual transactions
+        val lower = sms.body.lowercase()
+        if (lower.contains("mandate")) return null
+
         val transactionType = detectTransactionType(sms.body)
         val accountLast4 = extractAccountLast4(sms.body)
         val category = detectCategory(sms.body)
