@@ -15,6 +15,14 @@ local.properties
 *.iml
 .DS_Store
 
+# Opencode
+.opencode/
+AGENTS.md
+opencode.json
+
+# VSCode
+.vscode/
+
 # Generated
 app/src/main/assets/budget_tracker_preview.html
 
@@ -22,6 +30,3 @@ app/src/main/assets/budget_tracker_preview.html
 *.log
 hs_err_*.log
 replay_pid*.log
-
-# Opencode
-opencode.json
