@@ -43,7 +43,7 @@ class BankMessageParser {
 
         val debitPatterns = listOf(
             "\\bdebited\\b", "\\bdebit\\b", "\\bwithdrawn\\b", "\\bpaid\\b",
-            "\\bdeducted\\b", "\\bspent\\b", "\\btransfer\\b", "\\bmandate\\b"
+            "\\bdeducted\\b", "\\bspent\\b", "\\btransfer\\b"
         ).map { it.toRegex(RegexOption.IGNORE_CASE) }
 
         val creditScore = creditPatterns.count { it.containsMatchIn(lower) }
