@@ -1,0 +1,27 @@
+# Build artifacts
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local config
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Generated
+app/src/main/assets/budget_tracker_preview.html
+
+# Logs and crash dumps
+*.log
+hs_err_*.log
+replay_pid*.log
+
+# Opencode
+opencode.json
