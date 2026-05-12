@@ -36,18 +36,18 @@ class BankMessageParser {
     private fun detectTransactionType(body: String): TransactionType {
         val lower = body.lowercase()
 
-        val creditIndicators = listOf(
-            "credited", "credit", "deposited", "received",
-            "added", "deposit", "received"
-        )
+        val creditPatterns = listOf(
+            "\\bcredited\\b", "\\bcredit\\b", "\\bdeposited\\b", "\\breceived\\b",
+            "\\badded\\b", "\\bdeposit\\b"
+        ).map { it.toRegex(RegexOption.IGNORE_CASE) }
 
-        val debitIndicators = listOf(
-            "debited", "debit", "withdrawn", "paid",
-            "deducted", "spent", "transfer"
-        )
+        val debitPatterns = listOf(
+            "\\bdebited\\b", "\\bdebit\\b", "\\bwithdrawn\\b", "\\bpaid\\b",
+            "\\bdeducted\\b", "\\bspent\\b", "\\btransfer\\b"
+        ).map { it.toRegex(RegexOption.IGNORE_CASE) }
 
-        val creditScore = creditIndicators.count { lower.contains(it) }
-        val debitScore = debitIndicators.count { lower.contains(it) }
+        val creditScore = creditPatterns.count { it.containsMatchIn(lower) }
+        val debitScore = debitPatterns.count { it.containsMatchIn(lower) }
 
         return if (creditScore > debitScore) TransactionType.CREDIT else TransactionType.DEBIT
     }
