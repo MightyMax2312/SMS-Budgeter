@@ -19,6 +19,7 @@ import com.budgettracker.ui.screens.OnboardingScreen
 import com.budgettracker.ui.screens.PermissionScreen
 import com.budgettracker.ui.theme.SMSBudgetTrackerTheme
 import com.budgettracker.ui.viewmodel.MainViewModel
+import com.budgettracker.ui.viewmodel.TransactionFilter
 
 class MainActivity : ComponentActivity() {
 
@@ -44,24 +45,28 @@ class MainActivity : ComponentActivity() {
                 var showPopup by remember { mutableStateOf(false) }
                 var popupMsg by remember { mutableStateOf("") }
 
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    when {
-                        !onboardingDone && hasSmsPermission -> {
-                            OnboardingScreen(
-                                onImportClick = { d -> vm.startBulkImport(d) },
-                                isLoading = isLoading
-                            )
-                        }
-                        onboardingDone -> {
-                            HomeScreen(
-                                uiState = uiState,
-                                isLoading = isLoading,
-                                onSyncClick = { vm.triggerManualSync() },
-                                onTransactionClick = { msg ->
-                                    popupMsg = msg
-                                    showPopup = true
-                                }
-                            )
+val filter by vm.filter.collectAsState()
+
+                 Surface(modifier = Modifier.fillMaxSize()) {
+                     when {
+                         !onboardingDone && hasSmsPermission -> {
+                             OnboardingScreen(
+                                 onImportClick = { d -> vm.startBulkImport(d) },
+                                 isLoading = isLoading
+                             )
+                         }
+                         onboardingDone -> {
+                             HomeScreen(
+                                 uiState = uiState,
+                                 isLoading = isLoading,
+                                 currentFilter = filter,
+                                 onSyncClick = { vm.triggerManualSync() },
+                                 onTransactionClick = { msg ->
+                                     popupMsg = msg
+                                     showPopup = true
+                                 },
+                                 onFilterChange = { vm.setFilter(it) }
+                             )
                             if (showPopup) {
                                 MessagePopup(popupMsg) { showPopup = false }
                             }

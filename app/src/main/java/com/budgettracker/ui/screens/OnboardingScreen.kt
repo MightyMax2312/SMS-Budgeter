@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.budgettracker.ui.viewmodel.TransactionFilter
 
 @Composable
 fun OnboardingScreen(
@@ -49,8 +52,15 @@ fun OnboardingScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            for ((days, label) in listOf(7L to "Last 7 days", 30L to "Last 30 days",
-                90L to "Last 3 months", 365L to "Last year")) {
+            val options = listOf(
+                7L to "Last 7 days",
+                30L to "Last 30 days",
+                90L to "Last 3 months",
+                365L to "Last year",
+                0L to "Start of this month"
+            )
+
+            options.forEach { (days, label) ->
                 ImportOpt(label, selectedDays == days) { selectedDays = days }
                 Spacer(Modifier.height(10.dp))
             }
@@ -101,6 +111,64 @@ private fun ImportOpt(label: String, selected: Boolean, onClick: () -> Unit) {
                     contentAlignment = Alignment.Center) {
                     Text("✓", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterDropdown(
+    currentFilter: TransactionFilter,
+    onFilterChange: (TransactionFilter) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf(
+        TransactionFilter.ALL to "All Transactions",
+        TransactionFilter.CREDIT to "Credit Only",
+        TransactionFilter.DEBIT to "Debit Only"
+    )
+
+    val selectedLabel = options.first { it.first == currentFilter }.second
+
+    Card(
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable { expanded = true }
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text("Show:", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(selectedLabel,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium)
+            }
+            Icon(Icons.Default.ArrowDropDown, contentDescription = "Filter",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+        ) {
+            options.forEach { (filter, label) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        onFilterChange(filter)
+                        expanded = false
+                    }
+                )
             }
         }
     }

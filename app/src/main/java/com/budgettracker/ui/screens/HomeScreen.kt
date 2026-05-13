@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budgettracker.ui.viewmodel.HomeUiState
 import com.budgettracker.ui.viewmodel.SlimTransaction
+import com.budgettracker.ui.viewmodel.TransactionFilter
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -32,8 +33,10 @@ import java.util.Locale
 fun HomeScreen(
     uiState: HomeUiState,
     isLoading: Boolean,
+    currentFilter: TransactionFilter,
     onSyncClick: () -> Unit,
-    onTransactionClick: (String) -> Unit
+    onTransactionClick: (String) -> Unit,
+    onFilterChange: (TransactionFilter) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -59,15 +62,30 @@ fun HomeScreen(
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             if (uiState.transactions.isNotEmpty()) {
                 SummaryCards(uiState)
+                Spacer(Modifier.height(4.dp))
+                FilterDropdown(
+                    currentFilter = currentFilter,
+                    onFilterChange = onFilterChange
+                )
                 Spacer(Modifier.height(8.dp))
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(uiState.transactions, key = { "${it.id}_${it.timestamp}" }) { tx ->
-                        TransactionRow(item = tx, onClick = { onTransactionClick(tx.rawMessage) })
-                    }
+                TransactionList(transactions = uiState.transactions) { msg ->
+                    onTransactionClick(msg)
                 }
             } else {
                 emptyState(onSyncClick)
             }
+        }
+    }
+}
+
+@Composable
+private fun TransactionList(
+    transactions: List<SlimTransaction>,
+    onTransactionClick: (String) -> Unit
+) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(transactions, key = { "${it.id}_${it.timestamp}" }) { tx ->
+            TransactionRow(item = tx, onClick = { onTransactionClick(tx.rawMessage) })
         }
     }
 }

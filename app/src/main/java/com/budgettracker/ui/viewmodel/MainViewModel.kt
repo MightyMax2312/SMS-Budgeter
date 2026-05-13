@@ -18,7 +18,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
+
+enum class TransactionFilter { ALL, CREDIT, DEBIT }
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -38,11 +41,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val isOnboardingCompleted = syncPrefs.isOnboardingCompleted
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    val uiState: StateFlow<HomeUiState> = combine(repoTransactions, syncPrefs.isOnboardingCompleted) { txs: List<Transaction>, _: Boolean ->
-        val creds = txs.filter { it.transactionType == TransactionType.CREDIT }
-        val debits = txs.filter { it.transactionType == TransactionType.DEBIT }
+    private val _filter = MutableStateFlow(TransactionFilter.ALL)
+    val filter: StateFlow<TransactionFilter> = _filter.asStateFlow()
+
+    fun setFilter(filter: TransactionFilter) {
+        _filter.value = filter
+    }
+
+    val uiState: StateFlow<HomeUiState> = combine(repoTransactions, _filter) { txs: List<Transaction>, filter: TransactionFilter ->
+        val filtered = when (filter) {
+            TransactionFilter.CREDIT -> txs.filter { it.transactionType == TransactionType.CREDIT }
+            TransactionFilter.DEBIT -> txs.filter { it.transactionType == TransactionType.DEBIT }
+            TransactionFilter.ALL -> txs
+        }
+        val creds = filtered.filter { it.transactionType == TransactionType.CREDIT }
+        val debits = filtered.filter { it.transactionType == TransactionType.DEBIT }
         HomeUiState(
-            transactions = txs.map { tx ->
+            transactions = filtered.map { tx ->
                 SlimTransaction(
                     id = tx.id,
                     bankName = tx.bankName,
@@ -58,7 +73,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             totalCredits = creds.sumOf { it.amount },
             totalDebits = debits.sumOf { it.amount },
             balance = creds.sumOf { it.amount } - debits.sumOf { it.amount },
-            transactionCount = txs.size
+            transactionCount = filtered.size
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
@@ -70,8 +85,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                val importDays = if (days == 0L) {
+                    val cal = Calendar.getInstance()
+                    val today = cal.get(Calendar.DAY_OF_MONTH)
+                    val monthStart = Calendar.getInstance()
+                    monthStart.set(Calendar.DAY_OF_MONTH, 1)
+                    val diff = (cal.timeInMillis - monthStart.timeInMillis) / (1000 * 60 * 60 * 24)
+                    diff + 1
+                } else days
+
                 val req = OneTimeWorkRequestBuilder<BulkImportWorker>()
-                    .setInputData(workDataOf("import_days" to days)).build()
+                    .setInputData(workDataOf("import_days" to importDays)).build()
                 workManager.enqueueUniqueWork(
                     BulkImportWorker.WORK_NAME,
                     ExistingWorkPolicy.REPLACE,
