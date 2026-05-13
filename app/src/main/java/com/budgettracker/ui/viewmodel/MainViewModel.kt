@@ -128,7 +128,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // Step 1: Delete all existing transactions synchronously
                 repository.deleteAll()
+
+                // Step 2: Enqueue worker to import from the selected date
                 val req = OneTimeWorkRequestBuilder<BulkImportWorker>()
                     .setInputData(workDataOf("start_time" to startTimeMillis)).build()
                 workManager.enqueueUniqueWork(
@@ -139,14 +142,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 workManager.getWorkInfoByIdFlow(req.id).collect { info ->
                     if (info.state.isFinished) {
                         _isLoading.value = false
+                        if (info.state == WorkInfo.State.SUCCEEDED) {
+                            syncPrefs.setOnboardingCompleted(true)
+                        }
                     }
                 }
-            } catch (e: Exception) { _isLoading.value = false }
+            } catch (e: Exception) {
+                _isLoading.value = false
+            }
         }
     }
 
     private fun schedulePeriodicSync() {
-        val constraints = Constraints.Builder().setRequiresBatteryNotLow(true).build()
+        val constraints = Constraints.Builder()
+            .setRequiresBatteryNotLow(true)
+            .build()
         val work = PeriodicWorkRequestBuilder<SmsSyncWorker>(
             60, TimeUnit.MINUTES, 15, TimeUnit.MINUTES
         ).setConstraints(constraints).build()

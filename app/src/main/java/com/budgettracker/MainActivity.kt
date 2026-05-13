@@ -7,13 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -25,6 +19,7 @@ import com.budgettracker.ui.screens.PermissionScreen
 import com.budgettracker.ui.theme.SMSBudgetTrackerTheme
 import com.budgettracker.ui.viewmodel.MainViewModel
 import com.budgettracker.ui.viewmodel.TransactionFilter
+import java.util.Calendar
 
 class MainActivity : ComponentActivity() {
 
@@ -106,19 +101,32 @@ class MainActivity : ComponentActivity() {
         onDismiss: () -> Unit,
         onConfirm: (Long) -> Unit
     ) {
-        val datePickerState = rememberDatePickerState()
+        val today = Calendar.getInstance()
+        val todayMillis = today.timeInMillis
+
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = todayMillis,
+            yearRange = IntRange(2020, today.get(Calendar.YEAR))
+        )
+
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("Resync from date") },
             text = {
-                Text("Select a start date to clear existing data and resync transactions from that point forward.")
+                Text(
+                    "This will delete all existing transactions and re-import " +
+                    "from the selected date. Choose a date up to today."
+                )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        onConfirm(millis)
+                TextButton(
+                    onClick = {
+                        val selectedMillis = datePickerState.selectedDateMillis
+                            ?: todayMillis
+                        val clampedMillis = minOf(selectedMillis, todayMillis)
+                        onConfirm(clampedMillis)
                     }
-                }) {
+                ) {
                     Text("Resync")
                 }
             },
@@ -132,7 +140,8 @@ class MainActivity : ComponentActivity() {
 
     private fun checkSmsPermission() {
         hasSmsPermission = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.READ_SMS
+            this,
+            Manifest.permission.READ_SMS
         ) == PackageManager.PERMISSION_GRANTED
     }
 

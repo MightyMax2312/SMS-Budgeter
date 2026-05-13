@@ -1,6 +1,5 @@
 package com.budgettracker.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,8 +24,7 @@ import com.budgettracker.ui.viewmodel.SlimTransaction
 import com.budgettracker.ui.viewmodel.TransactionFilter
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,8 +37,6 @@ fun HomeScreen(
     onFilterChange: (TransactionFilter) -> Unit,
     onDateChangeClick: () -> Unit
 ) {
-    var showDatePicker by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -55,68 +50,66 @@ fun HomeScreen(
                         )
                     } else {
                         IconButton(onClick = onSyncClick) {
-                            Icon(Icons.Default.Refresh, "Sync",
-                                tint = MaterialTheme.colorScheme.onPrimary)
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Sync",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showDatePicker = true },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ) {
-                Icon(Icons.Default.DateRange, contentDescription = "Change start date")
+            if (!isLoading) {
+                FloatingActionButton(
+                    onClick = onDateChangeClick,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(
+                        Icons.Default.DateRange,
+                        contentDescription = "Change start date"
+                    )
+                }
             }
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            if (uiState.transactions.isNotEmpty()) {
-                SummaryCards(uiState)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (isLoading && uiState.transactions.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(strokeWidth = 3.dp)
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = "Syncing transactions...",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            } else if (uiState.transactions.isNotEmpty()) {
+                SummaryCards(uiState = uiState)
                 Spacer(Modifier.height(4.dp))
                 FilterDropdown(
                     currentFilter = currentFilter,
                     onFilterChange = onFilterChange
                 )
                 Spacer(Modifier.height(8.dp))
-                TransactionList(transactions = uiState.transactions) { msg ->
-                    onTransactionClick(msg)
-                }
+                TransactionList(
+                    transactions = uiState.transactions,
+                    onTransactionClick = onTransactionClick
+                )
             } else {
-                emptyState(onSyncClick)
+                EmptyState(onSyncClick = onSyncClick)
             }
         }
-    }
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState()
-        AlertDialog(
-            onDismissRequest = { showDatePicker = false },
-            title = { Text("Select a start date") },
-            text = {
-                Column {
-                    Text("Choose a date to resync transactions from. " +
-                        "Existing data will be cleared and re-imported from the selected date.")
-                    Spacer(Modifier.height(16.dp))
-                    DatePicker(state = datePickerState)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDatePicker = false
-                    onDateChangeClick()
-                }) {
-                    Text("Resync")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }
 
@@ -126,8 +119,14 @@ private fun TransactionList(
     onTransactionClick: (String) -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(transactions, key = { "${it.id}_${it.timestamp}" }) { tx ->
-            TransactionRow(item = tx, onClick = { onTransactionClick(tx.rawMessage) })
+        items(
+            items = transactions,
+            key = { tx -> "${tx.id}_${tx.timestamp}" }
+        ) { tx ->
+            TransactionRow(
+                item = tx,
+                onClick = { onTransactionClick(tx.rawMessage) }
+            )
         }
     }
 }
@@ -135,33 +134,61 @@ private fun TransactionList(
 @Composable
 private fun SummaryCards(uiState: HomeUiState) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-            Text("Balance", style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-            Text("₹${String.format("%.2f", uiState.balance)}",
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                text = "Balance",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+            )
+            Text(
+                text = "Rs${String.format("%.2f", uiState.balance)}",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (uiState.balance >= 0) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.error)
+                color = if (uiState.balance >= 0)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.error
+            )
             Spacer(Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Column {
-                    Text("Income", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f))
-                    Text("+₹${String.format("%.2f", uiState.totalCredits)}",
-                        style = MaterialTheme.typography.titleMedium, color = Color(0xFF2D6A4F))
+                    Text(
+                        text = "Income",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        text = "+Rs${String.format("%.2f", uiState.totalCredits)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF2D6A4F)
+                    )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Expense", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f))
-                    Text("-₹${String.format("%.2f", uiState.totalDebits)}",
+                    Text(
+                        text = "Expense",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        text = "-Rs${String.format("%.2f", uiState.totalDebits)}",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error)
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
@@ -170,53 +197,69 @@ private fun SummaryCards(uiState: HomeUiState) {
 
 @Composable
 private fun TransactionRow(item: SlimTransaction, onClick: () -> Unit) {
-    val arrow = if (item.isCredit) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
-    val arrowColor = if (item.isCredit) Color(0xFF2D6A4F) else MaterialTheme.colorScheme.error
+    val arrow =
+        if (item.isCredit) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
+    val arrowColor =
+        if (item.isCredit) Color(0xFF2D6A4F) else MaterialTheme.colorScheme.error
 
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(arrow, contentDescription = null,
-                    tint = arrowColor, modifier = Modifier.size(28.dp))
+                Icon(
+                    arrow,
+                    contentDescription = null,
+                    tint = arrowColor,
+                    modifier = Modifier.size(28.dp)
+                )
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(item.bankName,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium)
                     Text(
-                        "${if (item.isCredit) "Credited" else "Debited"} • ${formatDate(item.timestamp)}",
+                        text = item.bankName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${if (item.isCredit) "Credited" else "Debited"} | ${formatDate(item.timestamp)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Text("₹${String.format("%.2f", item.amount)}",
+                Text(
+                    text = "Rs${String.format("%.2f", item.amount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = arrowColor,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
             }
         }
     }
 }
 
 @Composable
-private fun emptyState(onSyncClick: () -> Unit) {
+private fun EmptyState(onSyncClick: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("No transactions yet",
+        Text(
+            text = "No transactions yet",
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
         Spacer(Modifier.height(12.dp))
         OutlinedButton(onClick = onSyncClick) {
             Text("Sync SMS Messages")
