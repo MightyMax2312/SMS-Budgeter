@@ -59,4 +59,7 @@
 ## Git History (Recent Merges)
 - `main` was fast-forwarded to include all 5 commits from `dev`
 - Both branches were at commit: `c94d102`
-- `dev` now has 1 new commit ahead: `a2dea76` (calendar date picker on onboarding)
+- `dev` now has 3 new commits ahead:
+  - `a2dea76` (feat: calendar date picker on onboarding)
+  - `9317acc` (docs: update handoff.md)
+  - `45137ff` (fix: correct DatePicker state handling and restore TimeUnit import)
