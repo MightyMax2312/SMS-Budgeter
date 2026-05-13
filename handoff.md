@@ -17,32 +17,32 @@
 - **MVVM** pattern with Jetpack Compose UI
 - **Room + SQLCipher** for encrypted local SQLite storage
 - **WorkManager** for background SMS sync (periodic + one-time)
-- **DataStore** for preferences (sync timestamps, onboarding state)
+- **DataStore** for preferences (sync timestamps, onboarding state, selected start date)
 
 ### Source Files (21 Kotlin files)
 - `MainActivity.kt` — Entry point, SMS permission handling, navigation between screens
 - `BudgetTrackerApp.kt` — Application class (declared in AndroidManifest.xml)
-- `HomeScreen.kt` — Main screen with balance cards, transaction list, filter dropdown, message popup
-- `OnboardingScreen.kt` — First-run screen with import duration picker + "Start of Month" option
+- `OnboardingScreen.kt` — First-run screen with **calendar date picker** to select the start date for SMS import
 - `PermissionScreen.kt` — SMS permission grant screen
 - `MessagePopup.kt` — Dialog showing raw SMS with scrollable text, Copy button, Open SMS button, parsed details
-- `MainViewModel.kt` — ViewModel with `uiState`, `isLoading`, `isOnboardingCompleted`, `filter`, `transactions`
+- `MainViewModel.kt` — ViewModel with `uiState`, `isLoading`, `isOnboardingCompleted`, `filter`, `transactions`; `startBulkImport()` now accepts a start timestamp
 - `SmsSyncWorker.kt` — Background periodic sync worker
-- `BulkImportWorker.kt` — One-time onboarding import worker
+- `BulkImportWorker.kt` — One-time onboarding import worker; accepts `start_time` input directly instead of computing from days
 - `BankMessageParser.kt` — Regex-based SMS parser for HDFC/ICICI/SBI/Axis/Kotak/PNB/Yes Bank/BoB
 - `TransactionRepository.kt` — Data access layer wrapping TransactionDao
-- `SyncPreferences.kt` — DataStore-backed preferences
+- `SyncPreferences.kt` — DataStore-backed preferences (added `selectedStartDate` field)
 - `AppDatabase.kt` — Room database with encrypted and unencrypted instances
 - `TransactionDao.kt` — Room DAO with queries for all transactions, totals, ranges
 - `Transaction.kt` / `TransactionType.kt` / `Bank.kt` / `BankRegistry.kt` / `SmsMessage.kt` / `SyncResult.kt` — Domain models
 
 ### Implemented Features
-1. ✅ **"Start of this month" option** — Onboarding has a 5th option that auto-calculates days from the 1st of the current month
-2. ✅ **Credit/Debit/Both filter** — Dropdown on HomeScreen to isolate transaction types by ALL, CREDIT ONLY, or DEBIT ONLY
-3. ✅ **Enhanced MessagePopup** — Scrollable message (max 300dp), Copy to clipboard button, Open SMS app button
-4. ✅ **Mandate exclusion** — UPI-Mandate messages are skipped entirely during parsing (not debit, not credit)
-5. ✅ **Word-boundary regex** — Transaction type detection uses `\b` regex boundaries to prevent false substring matches
-6. ✅ **Merge to main** — Fast-forward merge from `dev` → `main`
+1. ✅ **Calendar date picker on onboarding** — User selects a specific start date via a Material 3 `DatePicker` dialog; default is the 1st of the current month
+2. ✅ **"Start of this month" option** — Replaced by the calendar picker, which defaults to the 1st of the current month
+3. ✅ **Credit/Debit/Both filter** — Dropdown on HomeScreen to isolate transaction types by ALL, CREDIT ONLY, or DEBIT ONLY
+4. ✅ **Enhanced MessagePopup** — Scrollable message (max 300dp), Copy to clipboard button, Open SMS app button
+5. ✅ **Mandate exclusion** — UPI-Mandate messages are skipped entirely during parsing (not debit, not credit)
+6. ✅ **Word-boundary regex** — Transaction type detection uses `\b` regex boundaries to prevent false substring matches
+7. ✅ **Merge to main** — Fast-forward merge from `dev` → `main`
 
 ## How to Continue
 1. Pull latest `main`: `git pull origin main`

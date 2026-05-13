@@ -20,6 +20,7 @@ class SyncPreferences(private val context: Context) {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val LAST_ONBOARDING_IMPORT = longPreferencesKey("last_onboarding_import")
         val SELECTED_IMPORT_DAYS = longPreferencesKey("selected_import_days")
+        val SELECTED_START_DATE = longPreferencesKey("selected_start_date")
     }
 
     val lastSmsSyncTime: Flow<Long> = context.dataStore.data.map { prefs ->
@@ -36,6 +37,10 @@ class SyncPreferences(private val context: Context) {
 
     val selectedImportDays: Flow<Long> = context.dataStore.data.map { prefs ->
         prefs[SELECTED_IMPORT_DAYS] ?: 30L
+    }
+
+    val selectedStartDate: Flow<Long> = context.dataStore.data.map { prefs ->
+        prefs[SELECTED_START_DATE] ?: 0L
     }
 
     suspend fun updateLastSmsSync(timestamp: Long) {
@@ -59,6 +64,12 @@ class SyncPreferences(private val context: Context) {
     suspend fun setSelectedImportDays(days: Long) {
         context.dataStore.edit { prefs ->
             prefs[SELECTED_IMPORT_DAYS] = days
+        }
+    }
+
+    suspend fun setSelectedStartDate(timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[SELECTED_START_DATE] = timestamp
         }
     }
 }

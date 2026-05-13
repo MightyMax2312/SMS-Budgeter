@@ -18,8 +18,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.Calendar
-import java.util.concurrent.TimeUnit
 
 enum class TransactionFilter { ALL, CREDIT, DEBIT }
 
@@ -81,21 +79,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         schedulePeriodicSync()
     }
 
-    fun startBulkImport(days: Long) {
+    fun startBulkImport(startTimeMillis: Long) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val importDays = if (days == 0L) {
-                    val cal = Calendar.getInstance()
-                    val today = cal.get(Calendar.DAY_OF_MONTH)
-                    val monthStart = Calendar.getInstance()
-                    monthStart.set(Calendar.DAY_OF_MONTH, 1)
-                    val diff = (cal.timeInMillis - monthStart.timeInMillis) / (1000 * 60 * 60 * 24)
-                    diff + 1
-                } else days
-
                 val req = OneTimeWorkRequestBuilder<BulkImportWorker>()
-                    .setInputData(workDataOf("import_days" to importDays)).build()
+                    .setInputData(workDataOf("start_time" to startTimeMillis)).build()
                 workManager.enqueueUniqueWork(
                     BulkImportWorker.WORK_NAME,
                     ExistingWorkPolicy.REPLACE,
