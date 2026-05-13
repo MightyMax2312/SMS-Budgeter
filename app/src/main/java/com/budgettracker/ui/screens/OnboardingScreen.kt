@@ -141,7 +141,6 @@ private fun DateSelectionCard(selectedDate: String, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium)
             }
-            Text("📅", fontSize = 24.sp)
         }
     }
 }
