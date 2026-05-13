@@ -124,6 +124,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun resyncFromDate(startTimeMillis: Long) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                repository.deleteAll()
+                val req = OneTimeWorkRequestBuilder<BulkImportWorker>()
+                    .setInputData(workDataOf("start_time" to startTimeMillis)).build()
+                workManager.enqueueUniqueWork(
+                    BulkImportWorker.WORK_NAME,
+                    ExistingWorkPolicy.REPLACE,
+                    req
+                )
+                workManager.getWorkInfoByIdFlow(req.id).collect { info ->
+                    if (info.state.isFinished) {
+                        _isLoading.value = false
+                    }
+                }
+            } catch (e: Exception) { _isLoading.value = false }
+        }
+    }
+
     private fun schedulePeriodicSync() {
         val constraints = Constraints.Builder().setRequiresBatteryNotLow(true).build()
         val work = PeriodicWorkRequestBuilder<SmsSyncWorker>(

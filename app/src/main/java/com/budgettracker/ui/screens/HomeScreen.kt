@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
@@ -36,8 +37,11 @@ fun HomeScreen(
     currentFilter: TransactionFilter,
     onSyncClick: () -> Unit,
     onTransactionClick: (String) -> Unit,
-    onFilterChange: (TransactionFilter) -> Unit
+    onFilterChange: (TransactionFilter) -> Unit,
+    onDateChangeClick: () -> Unit
 ) {
+    var showDatePicker by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -57,6 +61,15 @@ fun HomeScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showDatePicker = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(Icons.Default.DateRange, contentDescription = "Change start date")
+            }
         }
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -75,6 +88,35 @@ fun HomeScreen(
                 emptyState(onSyncClick)
             }
         }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        AlertDialog(
+            onDismissRequest = { showDatePicker = false },
+            title = { Text("Select a start date") },
+            text = {
+                Column {
+                    Text("Choose a date to resync transactions from. " +
+                        "Existing data will be cleared and re-imported from the selected date.")
+                    Spacer(Modifier.height(16.dp))
+                    DatePicker(state = datePickerState)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                    onDateChangeClick()
+                }) {
+                    Text("Resync")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
