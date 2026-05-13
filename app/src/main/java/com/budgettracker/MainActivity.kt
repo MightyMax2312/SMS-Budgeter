@@ -6,10 +6,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.budgettracker.ui.screens.HomeScreen
@@ -113,10 +117,14 @@ class MainActivity : ComponentActivity() {
             onDismissRequest = onDismiss,
             title = { Text("Resync from date") },
             text = {
-                Text(
-                    "This will delete all existing transactions and re-import " +
-                    "from the selected date. Choose a date up to today."
-                )
+                Column {
+                    Text(
+                        "This will delete all existing transactions and re-import " +
+                        "from the selected date. Choose a date up to today."
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    DatePicker(state = datePickerState)
+                }
             },
             confirmButton = {
                 TextButton(
