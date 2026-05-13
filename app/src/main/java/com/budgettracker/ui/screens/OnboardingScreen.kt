@@ -86,11 +86,15 @@ fun OnboardingScreen(
     }
 
     if (datePickerDialog.value) {
+        val datePickerState = rememberDatePickerState()
         DatePickerDialog(
             onDismissRequest = { datePickerDialog.value = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerDialog.value = false
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        selectedDateMillis = millis
+                    }
                 }) {
                     Text("OK")
                 }
@@ -100,8 +104,8 @@ fun OnboardingScreen(
                     Text("Cancel")
                 }
             }
-        ) { calendarState ->
-            selectedDateMillis = calendarState.selectedDateMillis
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
