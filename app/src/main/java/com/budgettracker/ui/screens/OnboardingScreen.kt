@@ -17,13 +17,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budgettracker.ui.viewmodel.TransactionFilter
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun OnboardingScreen(
     onImportClick: (Long) -> Unit,
     isLoading: Boolean
 ) {
-    var selectedDays by remember { mutableLongStateOf(30L) }
+    var selectedDateMillis by remember { mutableLongStateOf(calculateDefaultStartDate()) }
+    val datePickerDialog = remember { mutableStateOf(false) }
+    val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -48,27 +52,19 @@ fun OnboardingScreen(
 
             Spacer(Modifier.weight(1f, fill = false))
 
-            Text("How far back should we import?", fontSize = 18.sp, fontWeight = FontWeight(600))
+            Text("When should we start importing?", fontSize = 18.sp, fontWeight = FontWeight(600))
 
             Spacer(Modifier.height(16.dp))
 
-            val options = listOf(
-                7L to "Last 7 days",
-                30L to "Last 30 days",
-                90L to "Last 3 months",
-                365L to "Last year",
-                0L to "Start of this month"
+            DateSelectionCard(
+                selectedDate = dateFormatter.format(Date(selectedDateMillis)),
+                onClick = { datePickerDialog.value = true }
             )
 
-            options.forEach { (days, label) ->
-                ImportOpt(label, selectedDays == days) { selectedDays = days }
-                Spacer(Modifier.height(10.dp))
-            }
-
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
 
             Button(
-                onClick = { onImportClick(selectedDays) },
+                onClick = { onImportClick(selectedDateMillis) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 enabled = !isLoading
@@ -87,16 +83,38 @@ fun OnboardingScreen(
             Spacer(Modifier.height(8.dp))
         }
     }
+
+    if (datePickerDialog.value) {
+        StatementCalendarDialog(
+            title = "Start date",
+            confirmText = "Use date",
+            initialDateMillis = selectedDateMillis,
+            onDismiss = { datePickerDialog.value = false },
+            onConfirm = { millis ->
+                selectedDateMillis = millis
+                datePickerDialog.value = false
+            }
+        )
+    }
+}
+
+private fun calculateDefaultStartDate(): Long {
+    val cal = Calendar.getInstance()
+    cal.set(Calendar.DAY_OF_MONTH, 1)
+    cal.set(Calendar.HOUR_OF_DAY, 0)
+    cal.set(Calendar.MINUTE, 0)
+    cal.set(Calendar.SECOND, 0)
+    cal.set(Calendar.MILLISECOND, 0)
+    return cal.timeInMillis
 }
 
 @Composable
-private fun ImportOpt(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun DateSelectionCard(selectedDate: String, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            if (selected) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -104,13 +122,12 @@ private fun ImportOpt(label: String, selected: Boolean, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, fontWeight = if (selected) FontWeight(600) else FontWeight(400))
-            if (selected) {
-                Box(Modifier.size(24.dp).clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center) {
-                    Text("✓", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
+            Column {
+                Text("Start Date", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(selectedDate,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium)
             }
         }
     }

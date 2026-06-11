@@ -11,49 +11,49 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF4F46E5),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFF282550),
-    onPrimaryContainer = Color(0xFFD4D0FF),
-    secondary = Color(0xFF00BFA5),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFF004D40),
-    onSecondaryContainer = Color(0xFF60F5D6),
-    tertiary = Color(0xFFFF6D00),
-    onTertiary = Color(0xFFFFFFFF),
-    background = Color(0xFF12121E),
-    onBackground = Color(0xFFE4E4EC),
-    surface = Color(0xFF1C1C2E),
-    onSurface = Color(0xFFE4E4EC),
-    surfaceVariant = Color(0xFF282840),
-    onSurfaceVariant = Color(0xFFA8A8C4),
-    outline = Color(0xFF404060),
-    inverseSurface = Color(0xFFE4E4EC),
-    inverseOnSurface = Color(0xFF12121E),
-    error = Color(0xFFFF5252)
+    primary = Color(0xFFBFC6AD),
+    onPrimary = Color(0xFF17241D),
+    primaryContainer = Color(0xFF536051),
+    onPrimaryContainer = Color(0xFFE4E6D4),
+    secondary = Color(0xFFE0704E),
+    onSecondary = Color(0xFF1F140F),
+    secondaryContainer = Color(0xFF6F7B69),
+    onSecondaryContainer = Color(0xFFE4E6D4),
+    tertiary = Color(0xFFD8C18C),
+    onTertiary = Color(0xFF211D12),
+    background = Color(0xFF121711),
+    onBackground = Color(0xFFE4E6D4),
+    surface = Color(0xFF1B211A),
+    onSurface = Color(0xFFE4E6D4),
+    surfaceVariant = Color(0xFF30372E),
+    onSurfaceVariant = Color(0xFFB8BEA8),
+    outline = Color(0xFF77816F),
+    inverseSurface = Color(0xFFE4E6D4),
+    inverseOnSurface = Color(0xFF18261E),
+    error = Color(0xFFE0704E)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF4F46E5),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFE8EAF6),
-    onPrimaryContainer = Color(0xFF10103A),
-    secondary = Color(0xFF00BFA5),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFE0F2F1),
-    onSecondaryContainer = Color(0xFF00362E),
-    tertiary = Color(0xFFFF6D00),
+    primary = Color(0xFF536051),
+    onPrimary = Color(0xFFE4E6D4),
+    primaryContainer = Color(0xFFC9CEB9),
+    onPrimaryContainer = Color(0xFF18261E),
+    secondary = Color(0xFFE0704E),
+    onSecondary = Color(0xFF1F140F),
+    secondaryContainer = Color(0xFFF0B297),
+    onSecondaryContainer = Color(0xFF26130E),
+    tertiary = Color(0xFF7F8775),
     onTertiary = Color(0xFFFFFFFF),
-    background = Color(0xFFF8F8FC),
-    onBackground = Color(0xFF1A1A2E),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF1A1A2E),
-    surfaceVariant = Color(0xFFE8E8F0),
-    onSurfaceVariant = Color(0xFF484860),
-    outline = Color(0xFFC8C8D8),
-    inverseSurface = Color(0xFF1A1A2E),
-    inverseOnSurface = Color(0xFFF0F0FA),
-    error = Color(0xFFB3261E)
+    background = Color(0xFFC9CEB9),
+    onBackground = Color(0xFF18261E),
+    surface = Color(0xFFDEE1CF),
+    onSurface = Color(0xFF18261E),
+    surfaceVariant = Color(0xFFB8BEA8),
+    onSurfaceVariant = Color(0xFF536051),
+    outline = Color(0xFF7F8775),
+    inverseSurface = Color(0xFF18261E),
+    inverseOnSurface = Color(0xFFE4E6D4),
+    error = Color(0xFFE0704E)
 )
 
 @Composable
@@ -67,7 +67,7 @@ fun SMSBudgetTrackerTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

@@ -10,7 +10,6 @@ import com.budgettracker.data.local.entity.TransactionEntity
 import com.budgettracker.data.repository.SmsRepository
 import com.budgettracker.domain.usecase.BankMessageParser
 import kotlinx.coroutines.flow.first
-import java.util.concurrent.TimeUnit
 
 class SmsSyncWorker(
     context: Context,
@@ -67,9 +66,8 @@ class BulkImportWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            val inputDays = inputData.getLong("import_days", 30L)
+            val startTime = inputData.getLong("start_time", 0L)
             val endTime = System.currentTimeMillis()
-            val startTime = endTime - TimeUnit.DAYS.toMillis(inputDays)
 
             val messages = smsRepository.getSmsMessages(startTime, endTime)
             val transactions = parser.parseMultiple(messages)

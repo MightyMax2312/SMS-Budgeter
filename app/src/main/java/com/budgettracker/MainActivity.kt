@@ -7,8 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -17,9 +16,9 @@ import com.budgettracker.ui.screens.HomeScreen
 import com.budgettracker.ui.screens.MessagePopup
 import com.budgettracker.ui.screens.OnboardingScreen
 import com.budgettracker.ui.screens.PermissionScreen
+import com.budgettracker.ui.screens.StatementCalendarDialog
 import com.budgettracker.ui.theme.SMSBudgetTrackerTheme
 import com.budgettracker.ui.viewmodel.MainViewModel
-import com.budgettracker.ui.viewmodel.TransactionFilter
 
 class MainActivity : ComponentActivity() {
 
@@ -44,29 +43,31 @@ class MainActivity : ComponentActivity() {
 
                 var showPopup by remember { mutableStateOf(false) }
                 var popupMsg by remember { mutableStateOf("") }
+                var showResyncPicker by remember { mutableStateOf(false) }
 
-val filter by vm.filter.collectAsState()
+                val filter by vm.filter.collectAsState()
 
-                 Surface(modifier = Modifier.fillMaxSize()) {
-                     when {
-                         !onboardingDone && hasSmsPermission -> {
-                             OnboardingScreen(
-                                 onImportClick = { d -> vm.startBulkImport(d) },
-                                 isLoading = isLoading
-                             )
-                         }
-                         onboardingDone -> {
-                             HomeScreen(
-                                 uiState = uiState,
-                                 isLoading = isLoading,
-                                 currentFilter = filter,
-                                 onSyncClick = { vm.triggerManualSync() },
-                                 onTransactionClick = { msg ->
-                                     popupMsg = msg
-                                     showPopup = true
-                                 },
-                                 onFilterChange = { vm.setFilter(it) }
-                             )
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        !onboardingDone && hasSmsPermission -> {
+                            OnboardingScreen(
+                                onImportClick = { d -> vm.startBulkImport(d) },
+                                isLoading = isLoading
+                            )
+                        }
+                        onboardingDone -> {
+                            HomeScreen(
+                                uiState = uiState,
+                                isLoading = isLoading,
+                                currentFilter = filter,
+                                onSyncClick = { vm.triggerManualSync() },
+                                onTransactionClick = { msg ->
+                                    popupMsg = msg
+                                    showPopup = true
+                                },
+                                onFilterChange = { vm.setFilter(it) },
+                                onDateChangeClick = { showResyncPicker = true }
+                            )
                             if (showPopup) {
                                 MessagePopup(popupMsg) { showPopup = false }
                             }
@@ -79,13 +80,27 @@ val filter by vm.filter.collectAsState()
                         }
                     }
                 }
+
+                if (showResyncPicker) {
+                    StatementCalendarDialog(
+                        title = "Resync from",
+                        confirmText = "Resync",
+                        initialDateMillis = System.currentTimeMillis(),
+                        onDismiss = { showResyncPicker = false },
+                        onConfirm = { millis ->
+                            showResyncPicker = false
+                            vm.resyncFromDate(millis)
+                        }
+                    )
+                }
             }
         }
     }
 
     private fun checkSmsPermission() {
         hasSmsPermission = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.READ_SMS
+            this,
+            Manifest.permission.READ_SMS
         ) == PackageManager.PERMISSION_GRANTED
     }
 
