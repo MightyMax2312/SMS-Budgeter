@@ -6,24 +6,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.budgettracker.ui.screens.HomeScreen
 import com.budgettracker.ui.screens.MessagePopup
 import com.budgettracker.ui.screens.OnboardingScreen
 import com.budgettracker.ui.screens.PermissionScreen
+import com.budgettracker.ui.screens.StatementCalendarDialog
 import com.budgettracker.ui.theme.SMSBudgetTrackerTheme
 import com.budgettracker.ui.viewmodel.MainViewModel
-import com.budgettracker.ui.viewmodel.TransactionFilter
-import java.util.Calendar
 
 class MainActivity : ComponentActivity() {
 
@@ -87,7 +82,10 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (showResyncPicker) {
-                    ResyncDatePickerDialog(
+                    StatementCalendarDialog(
+                        title = "Resync from",
+                        confirmText = "Resync",
+                        initialDateMillis = System.currentTimeMillis(),
                         onDismiss = { showResyncPicker = false },
                         onConfirm = { millis ->
                             showResyncPicker = false
@@ -97,53 +95,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun ResyncDatePickerDialog(
-        onDismiss: () -> Unit,
-        onConfirm: (Long) -> Unit
-    ) {
-        val today = Calendar.getInstance()
-        val todayMillis = today.timeInMillis
-
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = todayMillis,
-            yearRange = IntRange(2020, today.get(Calendar.YEAR))
-        )
-
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("Resync from date") },
-            text = {
-                Column {
-                    Text(
-                        "This will delete all existing transactions and re-import " +
-                        "from the selected date. Choose a date up to today."
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    DatePicker(state = datePickerState)
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val selectedMillis = datePickerState.selectedDateMillis
-                            ?: todayMillis
-                        val clampedMillis = minOf(selectedMillis, todayMillis)
-                        onConfirm(clampedMillis)
-                    }
-                ) {
-                    Text("Resync")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 
     private fun checkSmsPermission() {

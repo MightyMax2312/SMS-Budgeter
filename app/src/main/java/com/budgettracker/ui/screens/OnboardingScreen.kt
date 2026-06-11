@@ -20,7 +20,6 @@ import com.budgettracker.ui.viewmodel.TransactionFilter
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
     onImportClick: (Long) -> Unit,
@@ -86,27 +85,16 @@ fun OnboardingScreen(
     }
 
     if (datePickerDialog.value) {
-        val datePickerState = rememberDatePickerState()
-        DatePickerDialog(
-            onDismissRequest = { datePickerDialog.value = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerDialog.value = false
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        selectedDateMillis = millis
-                    }
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { datePickerDialog.value = false }) {
-                    Text("Cancel")
-                }
+        StatementCalendarDialog(
+            title = "Start date",
+            confirmText = "Use date",
+            initialDateMillis = selectedDateMillis,
+            onDismiss = { datePickerDialog.value = false },
+            onConfirm = { millis ->
+                selectedDateMillis = millis
+                datePickerDialog.value = false
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 }
 
