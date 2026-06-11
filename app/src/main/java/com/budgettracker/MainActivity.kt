@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
 
                 var showPopup by remember { mutableStateOf(false) }
                 var popupMsg by remember { mutableStateOf("") }
+                var popupTimestamp by remember { mutableLongStateOf(0L) }
                 var showResyncPicker by remember { mutableStateOf(false) }
 
                 val filter by vm.filter.collectAsState()
@@ -61,15 +62,20 @@ class MainActivity : ComponentActivity() {
                                 isLoading = isLoading,
                                 currentFilter = filter,
                                 onSyncClick = { vm.triggerManualSync() },
-                                onTransactionClick = { msg ->
+                                onTransactionClick = { msg, timestamp ->
                                     popupMsg = msg
+                                    popupTimestamp = timestamp
                                     showPopup = true
                                 },
                                 onFilterChange = { vm.setFilter(it) },
                                 onDateChangeClick = { showResyncPicker = true }
                             )
                             if (showPopup) {
-                                MessagePopup(popupMsg) { showPopup = false }
+                                MessagePopup(
+                                    rawMessage = popupMsg,
+                                    timestamp = popupTimestamp,
+                                    onDismiss = { showPopup = false }
+                                )
                             }
                         }
                         else -> {
