@@ -35,7 +35,7 @@ fun HomeScreen(
     isLoading: Boolean,
     currentFilter: TransactionFilter,
     onSyncClick: () -> Unit,
-    onTransactionClick: (String) -> Unit,
+    onTransactionClick: (String, Long) -> Unit,
     onFilterChange: (TransactionFilter) -> Unit,
     onDateChangeClick: () -> Unit
 ) {
@@ -82,6 +82,8 @@ fun HomeScreen(
                 item {
                     StatementSummary(
                         uiState = uiState,
+                        currentFilter = currentFilter,
+                        onFilterChange = onFilterChange,
                         onDateChangeClick = onDateChangeClick
                     )
                 }
@@ -97,7 +99,7 @@ fun HomeScreen(
                 ) { tx ->
                     TransactionRow(
                         item = tx,
-                        onClick = { onTransactionClick(tx.rawMessage) }
+                        onClick = { onTransactionClick(tx.rawMessage, tx.timestamp) }
                     )
                 }
             } else {
@@ -194,6 +196,8 @@ private fun StatementHeader(
 @Composable
 private fun StatementSummary(
     uiState: HomeUiState,
+    currentFilter: TransactionFilter,
+    onFilterChange: (TransactionFilter) -> Unit,
     onDateChangeClick: () -> Unit
 ) {
     val palette = StatementPalette
@@ -221,7 +225,14 @@ private fun StatementSummary(
                 modifier = Modifier
                     .weight(1.15f)
                     .fillMaxHeight()
+                    .clip(RoundedCornerShape(bottomEnd = 4.dp))
                     .background(palette.moss)
+                    .border(
+                        width = 1.dp,
+                        color = if (currentFilter == TransactionFilter.DEBIT) palette.clay else Color.Transparent,
+                        shape = RoundedCornerShape(bottomEnd = 4.dp)
+                    )
+                    .clickable { onFilterChange(TransactionFilter.DEBIT) }
                     .padding(18.dp),
                 verticalArrangement = Arrangement.Bottom
             ) {
@@ -259,13 +270,15 @@ private fun StatementSummary(
             lineHeight = 54.sp,
             fontWeight = FontWeight.Black,
             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-            maxLines = 1
+            maxLines = 1,
+            modifier = Modifier.clickable { onFilterChange(TransactionFilter.ALL) }
         )
         Text(
             text = "AVAILABLE",
             color = palette.ink,
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clickable { onFilterChange(TransactionFilter.ALL) }
         )
 
         Spacer(Modifier.height(34.dp))
@@ -284,20 +297,32 @@ private fun StatementSummary(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text(
-                        text = formatStatementCurrency(cash),
-                        color = palette.cream,
-                        fontSize = 34.sp,
-                        lineHeight = 38.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = "CASH",
-                        color = palette.cream.copy(alpha = 0.78f),
-                        style = MaterialTheme.typography.labelLarge
-                    )
+                    Column(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(
+                                width = 1.dp,
+                                color = if (currentFilter == TransactionFilter.CREDIT) palette.cream.copy(alpha = 0.75f) else Color.Transparent,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .clickable { onFilterChange(TransactionFilter.CREDIT) }
+                            .padding(6.dp)
+                    ) {
+                        Text(
+                            text = formatStatementCurrency(cash),
+                            color = palette.cream,
+                            fontSize = 34.sp,
+                            lineHeight = 38.sp,
+                            fontWeight = FontWeight.Medium,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "CASH",
+                            color = palette.cream.copy(alpha = 0.78f),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
 
                 Spacer(Modifier.weight(1f))
@@ -468,7 +493,7 @@ private fun TransactionRow(item: SlimTransaction, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "${if (item.isCredit) "Credited" else "Debited"} / ${formatDate(item.timestamp)} / ${item.accountLast4}",
+                text = "${if (item.isCredit) "Credited" else "Debited"} / ${formatDateTime(item.timestamp)} / ${item.accountLast4}",
                 color = palette.quietInk,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -540,5 +565,10 @@ fun formatCurrency(amount: Double): String {
 
 private fun formatDate(ts: Long): String {
     val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
+    return sdf.format(Date(ts))
+}
+
+private fun formatDateTime(ts: Long): String {
+    val sdf = SimpleDateFormat("dd MMM, h:mm:ss a", Locale.getDefault())
     return sdf.format(Date(ts))
 }

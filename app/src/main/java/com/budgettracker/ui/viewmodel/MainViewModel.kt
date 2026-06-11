@@ -53,8 +53,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             TransactionFilter.DEBIT -> txs.filter { it.transactionType == TransactionType.DEBIT }
             TransactionFilter.ALL -> txs
         }
-        val creds = filtered.filter { it.transactionType == TransactionType.CREDIT }
-        val debits = filtered.filter { it.transactionType == TransactionType.DEBIT }
+        val creds = txs.filter { it.transactionType == TransactionType.CREDIT }
+        val debits = txs.filter { it.transactionType == TransactionType.DEBIT }
         HomeUiState(
             transactions = filtered.map { tx ->
                 SlimTransaction(
