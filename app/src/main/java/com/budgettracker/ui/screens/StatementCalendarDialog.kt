@@ -57,6 +57,7 @@ fun StatementCalendarDialog(
     initialDateMillis: Long,
     onDismiss: () -> Unit,
     onConfirm: (Long) -> Unit,
+    onManualAddClick: ((Long) -> Unit)? = null,
     modifier: Modifier = Modifier,
     minDateMillis: Long = firstDayOfYearMillis(2020),
     maxDateMillis: Long = todayStartMillis()
@@ -156,6 +157,21 @@ fun StatementCalendarDialog(
                 }
 
                 Spacer(Modifier.height(18.dp))
+
+                if (onManualAddClick != null) {
+                    OutlinedButton(
+                        onClick = { onManualAddClick(selectedDate) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = palette.ink
+                        )
+                    ) {
+                        Text("Add manually for this date")
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

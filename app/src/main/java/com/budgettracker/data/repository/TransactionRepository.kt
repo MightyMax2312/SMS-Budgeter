@@ -40,6 +40,10 @@ class TransactionRepository(private val transactionDao: TransactionDao) {
         transactionDao.insertTransactions(transactions.map { TransactionEntity.fromDomain(it) })
     }
 
+    suspend fun deleteTransactionById(id: Long) {
+        transactionDao.deleteById(id)
+    }
+
     suspend fun deleteAll() {
         transactionDao.deleteAll()
     }

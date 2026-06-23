@@ -11,5 +11,10 @@ data class Transaction(
     val timestamp: Long,
     val rawMessage: String,
     val recipientName: String? = null,
-    val category: String? = null
+    val category: String? = null,
+    val smsId: Long? = null,
+    val smsThreadId: Long? = null,
+    val smsAddress: String? = null,
+    val smsDate: Long? = null,
+    val transactionFingerprint: String? = null
 )

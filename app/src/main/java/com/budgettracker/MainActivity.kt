@@ -12,13 +12,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.mutableLongStateOf
 import com.budgettracker.ui.screens.HomeScreen
+import com.budgettracker.ui.screens.ManualTransactionDialog
 import com.budgettracker.ui.screens.MessagePopup
 import com.budgettracker.ui.screens.OnboardingScreen
 import com.budgettracker.ui.screens.PermissionScreen
 import com.budgettracker.ui.screens.StatementCalendarDialog
 import com.budgettracker.ui.theme.SMSBudgetTrackerTheme
 import com.budgettracker.ui.viewmodel.MainViewModel
+import com.budgettracker.ui.viewmodel.SlimTransaction
 
 class MainActivity : ComponentActivity() {
 
@@ -42,9 +45,11 @@ class MainActivity : ComponentActivity() {
                 val onboardingDone by vm.isOnboardingCompleted.collectAsState()
 
                 var showPopup by remember { mutableStateOf(false) }
-                var popupMsg by remember { mutableStateOf("") }
-                var popupTimestamp by remember { mutableLongStateOf(0L) }
+                var popupTransaction by remember { mutableStateOf<SlimTransaction?>(null) }
                 var showResyncPicker by remember { mutableStateOf(false) }
+                var showManualDatePicker by remember { mutableStateOf(false) }
+                var showManualEntryDialog by remember { mutableStateOf(false) }
+                var manualEntryDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
                 val filter by vm.filter.collectAsState()
 
@@ -62,19 +67,41 @@ class MainActivity : ComponentActivity() {
                                 isLoading = isLoading,
                                 currentFilter = filter,
                                 onSyncClick = { vm.triggerManualSync() },
-                                onTransactionClick = { msg, timestamp ->
-                                    popupMsg = msg
-                                    popupTimestamp = timestamp
+                                onTransactionClick = { tx ->
+                                    popupTransaction = tx
                                     showPopup = true
                                 },
                                 onFilterChange = { vm.setFilter(it) },
-                                onDateChangeClick = { showResyncPicker = true }
+                                onSavingsTargetChange = { vm.updateMonthlySavingsTarget(it) },
+                                onDateChangeClick = { showResyncPicker = true },
+                                onManualAddClick = {
+                                    manualEntryDate = System.currentTimeMillis()
+                                    showManualDatePicker = true
+                                }
                             )
-                            if (showPopup) {
+                            val selectedTransaction = popupTransaction
+                            if (showPopup && selectedTransaction != null) {
                                 MessagePopup(
-                                    rawMessage = popupMsg,
-                                    timestamp = popupTimestamp,
-                                    onDismiss = { showPopup = false }
+                                    transactionId = selectedTransaction.id,
+                                    source = selectedTransaction.source,
+                                    bankName = selectedTransaction.bankName,
+                                    accountLast4 = selectedTransaction.accountLast4,
+                                    amount = selectedTransaction.amount,
+                                    isCredit = selectedTransaction.isCredit,
+                                    rawMessage = selectedTransaction.rawMessage,
+                                    timestamp = selectedTransaction.timestamp,
+                                    smsId = selectedTransaction.smsId,
+                                    smsThreadId = selectedTransaction.smsThreadId,
+                                    smsAddress = selectedTransaction.smsAddress,
+                                    onDismiss = {
+                                        showPopup = false
+                                        popupTransaction = null
+                                    },
+                                    onDeleteManualEntry = {
+                                        vm.deleteManualTransaction(selectedTransaction.id)
+                                        showPopup = false
+                                        popupTransaction = null
+                                    }
                                 )
                             }
                         }
@@ -96,6 +123,40 @@ class MainActivity : ComponentActivity() {
                         onConfirm = { millis ->
                             showResyncPicker = false
                             vm.resyncFromDate(millis)
+                        },
+                        onManualAddClick = { millis ->
+                            showResyncPicker = false
+                            manualEntryDate = millis
+                            showManualEntryDialog = true
+                        }
+                    )
+                }
+
+                if (showManualEntryDialog) {
+                    ManualTransactionDialog(
+                        dateMillis = manualEntryDate,
+                        onDismiss = { showManualEntryDialog = false },
+                        onSave = { amount, transactionType ->
+                            showManualEntryDialog = false
+                            vm.addManualTransaction(
+                                dateMillis = manualEntryDate,
+                                amount = amount,
+                                transactionType = transactionType
+                            )
+                        }
+                    )
+                }
+
+                if (showManualDatePicker) {
+                    StatementCalendarDialog(
+                        title = "Choose date",
+                        confirmText = "Continue",
+                        initialDateMillis = manualEntryDate,
+                        onDismiss = { showManualDatePicker = false },
+                        onConfirm = { millis ->
+                            showManualDatePicker = false
+                            manualEntryDate = millis
+                            showManualEntryDialog = true
                         }
                     )
                 }

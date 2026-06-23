@@ -22,9 +22,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -51,12 +55,23 @@ import java.util.Locale
 
 @Composable
 fun MessagePopup(
+    transactionId: Long,
+    source: String,
+    bankName: String,
+    accountLast4: String,
+    amount: Double,
+    isCredit: Boolean,
     rawMessage: String,
     timestamp: Long,
-    onDismiss: () -> Unit
+    smsId: Long?,
+    smsThreadId: Long?,
+    smsAddress: String?,
+    onDismiss: () -> Unit,
+    onDeleteManualEntry: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     var showCopied by remember { mutableStateOf(false) }
+    val isManualEntry = source.equals("MANUAL", ignoreCase = true)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -88,12 +103,28 @@ fun MessagePopup(
 
                 Spacer(Modifier.height(20.dp))
 
-                Text(
-                    text = "Original Message",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isManualEntry) "Manual Transaction" else "Original Message",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (isManualEntry && transactionId > 0L && onDeleteManualEntry != null) {
+                        IconButton(onClick = onDeleteManualEntry) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = "Delete manual entry",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
 
                 Card(
                     modifier = Modifier
@@ -138,32 +169,66 @@ fun MessagePopup(
                         Text(if (showCopied) "Copied!" else "Copy")
                     }
 
-                    Button(
-                        onClick = { openClickedSms(context, rawMessage, timestamp) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Open SMS")
+                    if (!isManualEntry) {
+                        Button(
+                            onClick = {
+                                openClickedSms(
+                                    context = context,
+                                    rawMessage = rawMessage,
+                                    timestamp = timestamp,
+                                    storedSmsId = smsId,
+                                    storedThreadId = smsThreadId,
+                                    storedAddress = smsAddress
+                                )
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Open SMS")
+                        }
+                    } else {
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Looks good")
+                        }
                     }
                 }
 
                 Spacer(Modifier.height(16.dp))
 
-                val (bank, amount, isCredit) = parseDetails(rawMessage)
-                val searchKey = buildSearchLiteral(rawMessage, null)
+                val (parsedBank, parsedAmount, _) = parseDetails(rawMessage)
+                val searchKey = buildSearchLiteral(rawMessage, smsAddress)
 
-                DetailRow("Bank", bank)
+                DetailRow("Bank", if (isManualEntry) bankName else parsedBank)
                 DetailRow("Type", if (isCredit) "Credited" else "Debited")
-                DetailRow("Amount", "Rs${String.format("%.2f", amount)}", isCredit)
+                DetailRow(
+                    "Amount",
+                    "Rs${String.format("%.2f", if (isManualEntry) amount else parsedAmount)}",
+                    isPositive = isCredit
+                )
                 DetailRow("Time", formatPopupTimestamp(timestamp))
-                DetailRow("Search key", searchKey)
+                DetailRow("Source", if (isManualEntry) "Added by you" else (smsAddress ?: "Unknown"))
+                if (isManualEntry) {
+                    DetailRow("Reference", accountLast4)
+                } else {
+                    DetailRow("Search key", searchKey)
+                }
 
                 Spacer(Modifier.height(16.dp))
 
                 Text(
-                    text = "All data stays on your device.\nNever sent to any server.",
+                    text = if (isManualEntry) {
+                        "This transaction was created from quick add and is stored locally on your device."
+                    } else {
+                        "All data stays on your device.\nNever sent to any server."
+                    },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     textAlign = TextAlign.Center,
@@ -179,15 +244,48 @@ fun MessagePopup(
                 ) {
                     Text("Close", fontWeight = FontWeight.SemiBold)
                 }
+
+                if (isManualEntry && transactionId > 0L && onDeleteManualEntry != null) {
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = onDeleteManualEntry,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text(
+                            text = "Delete manual entry",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-private fun openClickedSms(context: Context, rawMessage: String, timestamp: Long) {
-    val smsTarget = findSmsTarget(context, rawMessage, timestamp)
+private fun openClickedSms(
+    context: Context,
+    rawMessage: String,
+    timestamp: Long,
+    storedSmsId: Long?,
+    storedThreadId: Long?,
+    storedAddress: String?
+) {
+    val storedTarget = if (storedSmsId != null || storedThreadId != null || !storedAddress.isNullOrBlank()) {
+        SmsTarget(
+            messageId = storedSmsId,
+            threadId = storedThreadId,
+            address = storedAddress.orEmpty()
+        )
+    } else {
+        null
+    }
+    val smsTarget = storedTarget ?: findSmsTarget(context, rawMessage, timestamp)
     val defaultSmsPackage = Telephony.Sms.getDefaultSmsPackage(context)
-    val searchLiteral = buildSearchLiteral(rawMessage, smsTarget?.address)
+    val searchLiteral = buildSearchLiteral(rawMessage, smsTarget?.address ?: storedAddress)
     val searchIntents = listOfNotNull(
         defaultSmsPackage?.let { packageName ->
             Intent(Intent.ACTION_SEARCH).apply {
@@ -378,8 +476,8 @@ private fun extractUniqueSearchToken(message: String): String? {
 }
 
 private data class SmsTarget(
-    val messageId: Long,
-    val threadId: Long,
+    val messageId: Long?,
+    val threadId: Long?,
     val address: String
 )
 

@@ -1,13 +1,19 @@
 package com.budgettracker.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.budgettracker.domain.model.Transaction
 import com.budgettracker.domain.model.TransactionType
-import com.budgettracker.data.local.entity.TransactionEntity
 
 
-@Entity(tableName = "transactions")
+@Entity(
+    tableName = "transactions",
+    indices = [
+        Index(value = ["smsId"], unique = true),
+        Index(value = ["transactionFingerprint"], unique = true)
+    ]
+)
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -20,7 +26,12 @@ data class TransactionEntity(
     val timestamp: Long,
     val rawMessage: String,
     val recipientName: String?,
-    val category: String?
+    val category: String?,
+    val smsId: Long?,
+    val smsThreadId: Long?,
+    val smsAddress: String?,
+    val smsDate: Long?,
+    val transactionFingerprint: String?
 ){
     fun toDomain(): Transaction{
         return Transaction(
@@ -34,7 +45,12 @@ data class TransactionEntity(
             timestamp = timestamp,
             rawMessage = rawMessage,
             recipientName = recipientName,
-            category = category
+            category = category,
+            smsId = smsId,
+            smsThreadId = smsThreadId,
+            smsAddress = smsAddress,
+            smsDate = smsDate,
+            transactionFingerprint = transactionFingerprint
 
         )
     }
@@ -51,7 +67,12 @@ data class TransactionEntity(
                 timestamp = transaction.timestamp,
                 rawMessage = transaction.rawMessage,
                 recipientName = transaction.recipientName,
-                category = transaction.category
+                category = transaction.category,
+                smsId = transaction.smsId,
+                smsThreadId = transaction.smsThreadId,
+                smsAddress = transaction.smsAddress,
+                smsDate = transaction.smsDate,
+                transactionFingerprint = transaction.transactionFingerprint
             )
         }
     }

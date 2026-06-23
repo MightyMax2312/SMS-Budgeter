@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -21,6 +22,7 @@ class SyncPreferences(private val context: Context) {
         val LAST_ONBOARDING_IMPORT = longPreferencesKey("last_onboarding_import")
         val SELECTED_IMPORT_DAYS = longPreferencesKey("selected_import_days")
         val SELECTED_START_DATE = longPreferencesKey("selected_start_date")
+        val MONTHLY_SAVINGS_TARGET = doublePreferencesKey("monthly_savings_target")
     }
 
     val lastSmsSyncTime: Flow<Long> = context.dataStore.data.map { prefs ->
@@ -41,6 +43,10 @@ class SyncPreferences(private val context: Context) {
 
     val selectedStartDate: Flow<Long> = context.dataStore.data.map { prefs ->
         prefs[SELECTED_START_DATE] ?: 0L
+    }
+
+    val monthlySavingsTarget: Flow<Double> = context.dataStore.data.map { prefs ->
+        prefs[MONTHLY_SAVINGS_TARGET] ?: 0.0
     }
 
     suspend fun updateLastSmsSync(timestamp: Long) {
@@ -70,6 +76,12 @@ class SyncPreferences(private val context: Context) {
     suspend fun setSelectedStartDate(timestamp: Long) {
         context.dataStore.edit { prefs ->
             prefs[SELECTED_START_DATE] = timestamp
+        }
+    }
+
+    suspend fun setMonthlySavingsTarget(amount: Double) {
+        context.dataStore.edit { prefs ->
+            prefs[MONTHLY_SAVINGS_TARGET] = amount.coerceAtLeast(0.0)
         }
     }
 }
