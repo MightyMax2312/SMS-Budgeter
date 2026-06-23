@@ -4,6 +4,7 @@ import com.budgettracker.domain.model.BankRegistry
 import com.budgettracker.domain.model.SmsMessage
 import com.budgettracker.domain.model.Transaction
 import com.budgettracker.domain.model.TransactionType
+import java.util.Locale
 
 class BankMessageParser {
 
@@ -30,7 +31,12 @@ class BankMessageParser {
             timestamp = sms.date,
             rawMessage = sms.body,
             recipientName = null,
-            category = category
+            category = category,
+            smsId = sms.id,
+            smsThreadId = sms.threadId,
+            smsAddress = sms.address,
+            smsDate = sms.date,
+            transactionFingerprint = buildFingerprint(sms, amount, transactionType, accountLast4)
         )
     }
 
@@ -109,6 +115,8 @@ class BankMessageParser {
         val lower = body.lowercase()
 
         return when {
+            isSalaryCredit(lower) -> "SALARY"
+
             lower.contains("upi") || lower.contains("google pay") ||
             lower.contains("phonepe") || lower.contains("paytm") -> "UPI"
 
@@ -138,5 +146,44 @@ class BankMessageParser {
 
             else -> null
         }
+    }
+
+    private fun isSalaryCredit(lowerBody: String): Boolean {
+        val salaryKeywords = listOf(
+            "salary",
+            "payroll",
+            "monthly pay",
+            "wages",
+            "stipend",
+            "remuneration",
+            "employee salary",
+            "salary credit",
+            "sal cr",
+            "sal credited"
+        )
+        return salaryKeywords.any { lowerBody.contains(it) }
+    }
+
+    private fun buildFingerprint(
+        sms: SmsMessage,
+        amount: Double,
+        transactionType: TransactionType,
+        accountLast4: String
+    ): String {
+        val normalizedBody = sms.body
+            .lowercase()
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        return listOf(
+            "sms",
+            sms.id,
+            sms.threadId,
+            sms.date,
+            sms.address.lowercase(),
+            transactionType.name,
+            String.format(Locale.US, "%.2f", amount),
+            accountLast4,
+            normalizedBody.hashCode()
+        ).joinToString("|")
     }
 }

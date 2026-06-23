@@ -18,6 +18,7 @@ class SmsRepository(private val contentResolver: ContentResolver) {
             Telephony.Sms.CONTENT_URI,
             arrayOf(
                 Telephony.Sms._ID,
+                "thread_id",
                 Telephony.Sms.ADDRESS,
                 Telephony.Sms.BODY,
                 Telephony.Sms.DATE,
@@ -31,12 +32,16 @@ class SmsRepository(private val contentResolver: ContentResolver) {
 
         cursor?.use {
             if (it.moveToFirst()) {
+                val idIdx = it.getColumnIndexOrThrow(Telephony.Sms._ID)
+                val threadIdx = it.getColumnIndexOrThrow("thread_id")
                 val addressIdx = it.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
                 val bodyIdx = it.getColumnIndexOrThrow(Telephony.Sms.BODY)
                 val dateIdx = it.getColumnIndexOrThrow(Telephony.Sms.DATE)
                 val typeIdx = it.getColumnIndexOrThrow(Telephony.Sms.TYPE)
 
                 do {
+                    val id = it.getLong(idIdx)
+                    val threadId = it.getLong(threadIdx)
                     val address = it.getString(addressIdx) ?: continue
                     val body = it.getString(bodyIdx) ?: continue
                     val date = it.getLong(dateIdx)
@@ -45,7 +50,7 @@ class SmsRepository(private val contentResolver: ContentResolver) {
                     // TYPE = 1 is received, TYPE = 2 is sent
                     // We want received messages (type == 1)
                     if (type == Telephony.Sms.MESSAGE_TYPE_INBOX || type == 1) {
-                        messages.add(SmsMessage(address, body, date))
+                        messages.add(SmsMessage(id, threadId, address, body, date))
                     }
                 } while (it.moveToNext())
             }
@@ -60,6 +65,8 @@ class SmsRepository(private val contentResolver: ContentResolver) {
         val cursor = contentResolver.query(
             Telephony.Sms.CONTENT_URI,
             arrayOf(
+                Telephony.Sms._ID,
+                "thread_id",
                 Telephony.Sms.ADDRESS,
                 Telephony.Sms.BODY,
                 Telephony.Sms.DATE,
@@ -72,19 +79,23 @@ class SmsRepository(private val contentResolver: ContentResolver) {
 
         cursor?.use {
             if (it.moveToFirst()) {
+                val idIdx = it.getColumnIndexOrThrow(Telephony.Sms._ID)
+                val threadIdx = it.getColumnIndexOrThrow("thread_id")
                 val addressIdx = it.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
                 val bodyIdx = it.getColumnIndexOrThrow(Telephony.Sms.BODY)
                 val dateIdx = it.getColumnIndexOrThrow(Telephony.Sms.DATE)
                 val typeIdx = it.getColumnIndexOrThrow(Telephony.Sms.TYPE)
 
                 do {
+                    val id = it.getLong(idIdx)
+                    val threadId = it.getLong(threadIdx)
                     val address = it.getString(addressIdx) ?: continue
                     val body = it.getString(bodyIdx) ?: continue
                     val date = it.getLong(dateIdx)
                     val type = it.getInt(typeIdx)
 
                     if (type == Telephony.Sms.MESSAGE_TYPE_INBOX || type == 1) {
-                        messages.add(SmsMessage(address, body, date))
+                        messages.add(SmsMessage(id, threadId, address, body, date))
                     }
                 } while (it.moveToNext())
             }
