@@ -10,6 +10,7 @@ import androidx.work.*
 import com.budgettracker.data.datastore.SyncPreferences
 import com.budgettracker.data.local.AppDatabase
 import com.budgettracker.data.repository.TransactionRepository
+import com.budgettracker.domain.model.BankFilter
 import com.budgettracker.domain.model.Transaction
 import com.budgettracker.domain.model.TransactionType
 import com.budgettracker.worker.BulkImportWorker
@@ -53,20 +54,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _filter = MutableStateFlow(TransactionFilter.ALL)
     val filter: StateFlow<TransactionFilter> = _filter.asStateFlow()
 
+    private val _selectedBank = MutableStateFlow<String?>(null)
+    val selectedBank: StateFlow<String?> = _selectedBank.asStateFlow()
+
     fun setFilter(filter: TransactionFilter) {
         _filter.value = filter
+    }
+
+    fun setBank(bank: String?) {
+        _selectedBank.value = bank
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
         repoTransactions,
         _filter,
+        _selectedBank,
         syncPrefs.monthlySavingsTarget,
         syncPrefs.selectedStartDate
-    ) { txs: List<Transaction>, filter: TransactionFilter, savingsTarget: Double, selectedStartDate: Long ->
+    ) { txs: List<Transaction>, filter: TransactionFilter, selectedBank: String?, savingsTarget: Double, selectedStartDate: Long ->
+        // Banks encountered in the data, most-active first
+        val banks = BankFilter.deriveBanks(txs)
+        val activeBank = selectedBank?.takeIf { it in banks }
+        val bankFiltered = BankFilter.applyBankFilter(txs, activeBank)
         val filtered = when (filter) {
-            TransactionFilter.CREDIT -> txs.filter { it.transactionType == TransactionType.CREDIT }
-            TransactionFilter.DEBIT -> txs.filter { it.transactionType == TransactionType.DEBIT }
-            TransactionFilter.ALL -> txs
+            TransactionFilter.CREDIT -> bankFiltered.filter { it.transactionType == TransactionType.CREDIT }
+            TransactionFilter.DEBIT -> bankFiltered.filter { it.transactionType == TransactionType.DEBIT }
+            TransactionFilter.ALL -> bankFiltered
         }
         val creds = txs.filter { it.transactionType == TransactionType.CREDIT }
         val debits = txs.filter { it.transactionType == TransactionType.DEBIT }
@@ -148,7 +161,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             lastSevenDaysDebits = lastSevenDaysDebits,
             daysElapsedInMonth = daysElapsed,
             daysRemainingInMonth = daysRemaining,
-            selectedStartDate = selectedStartDate
+            selectedStartDate = selectedStartDate,
+            banks = banks,
+            selectedBank = activeBank
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
@@ -493,7 +508,9 @@ data class HomeUiState(
     val lastSevenDaysDebits: List<DailySpendBar> = emptyList(),
     val daysElapsedInMonth: Int = 0,
     val daysRemainingInMonth: Int = 0,
-    val selectedStartDate: Long = 0L
+    val selectedStartDate: Long = 0L,
+    val banks: List<String> = emptyList(),
+    val selectedBank: String? = null
 )
 
 data class DailySpendBar(

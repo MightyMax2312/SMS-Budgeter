@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
                                     showPopup = true
                                 },
                                 onFilterChange = { vm.setFilter(it) },
+                                onBankSelect = { bank -> vm.setBank(bank) },
                                 onSavingsTargetChange = { vm.updateMonthlySavingsTarget(it) },
                                 onDateChangeClick = { showResyncPicker = true },
                                 onManualAddClick = {

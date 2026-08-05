@@ -4,11 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.Icons
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.budgettracker.domain.model.BankFilter
 import com.budgettracker.ui.viewmodel.HomeUiState
 import com.budgettracker.ui.viewmodel.SlimTransaction
 import com.budgettracker.ui.viewmodel.TransactionFilter
@@ -47,6 +50,7 @@ fun HomeScreen(
     onSyncClick: () -> Unit,
     onTransactionClick: (SlimTransaction) -> Unit,
     onFilterChange: (TransactionFilter) -> Unit,
+    onBankSelect: (String?) -> Unit,
     onSavingsTargetChange: (Double) -> Unit,
     onDateChangeClick: () -> Unit,
     onManualAddClick: () -> Unit
@@ -169,6 +173,13 @@ fun HomeScreen(
                             LoadingStatement()
                         }
                     } else if (hasAnyData) {
+                        item {
+                            BankFilterRow(
+                                banks = uiState.banks,
+                                selectedBank = uiState.selectedBank,
+                                onBankSelect = onBankSelect
+                            )
+                        }
                         item {
                             when (page) {
                                 0 -> DailyPageSummary(
@@ -1614,6 +1625,129 @@ private fun FilteredEmptyState(
             text = "Change the filter or resync if new SMS messages have arrived.",
             color = palette.quietInk,
             style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+private fun BankFilterRow(
+    banks: List<String>,
+    selectedBank: String?,
+    onBankSelect: (String?) -> Unit
+) {
+    val palette = StatementPalette
+    var searchText by remember { mutableStateOf("") }
+    val trimmed = searchText.trim()
+    val searchValid = trimmed.isNotEmpty() && BankFilter.validateBank(banks, trimmed)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, palette.line.copy(alpha = 0.55f), RoundedCornerShape(22.dp))
+            .background(palette.paperDeep)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, palette.line, RoundedCornerShape(14.dp))
+                .background(palette.mossDark)
+                .padding(horizontal = 12.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = searchText,
+                onValueChange = { text ->
+                    searchText = text
+                    val q = text.trim()
+                    if (q.isNotEmpty() && BankFilter.validateBank(banks, q)) {
+                        onBankSelect(banks.first { it.equals(q, ignoreCase = true) })
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Search a bank manually", color = palette.quietInk) },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = palette.cream,
+                    focusedTextColor = palette.ink,
+                    unfocusedTextColor = palette.ink
+                ),
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+            if (trimmed.isNotEmpty()) {
+                IconButton(onClick = {
+                    searchText = ""
+                    onBankSelect(null)
+                }) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Clear bank search",
+                        tint = palette.quietInk
+                    )
+                }
+            }
+        }
+
+        if (trimmed.isNotEmpty() && !searchValid) {
+            Text(
+                text = "No transactions found for this bank",
+                color = palette.clay,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            BankChip(
+                label = "All",
+                selected = selectedBank == null && !searchValid,
+                onClick = {
+                    searchText = ""
+                    onBankSelect(null)
+                }
+            )
+            banks.forEach { bank ->
+                BankChip(
+                    label = bank,
+                    selected = selectedBank == bank,
+                    onClick = {
+                        searchText = ""
+                        onBankSelect(bank)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BankChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val palette = StatementPalette
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (selected) palette.cream else palette.moss)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            color = if (selected) Color.Black else palette.ink,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
