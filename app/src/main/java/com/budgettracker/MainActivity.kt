@@ -62,6 +62,9 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         onboardingDone -> {
+                            LaunchedEffect(Unit) {
+                                vm.syncWhenHomeScreenOpens()
+                            }
                             HomeScreen(
                                 uiState = uiState,
                                 isLoading = isLoading,

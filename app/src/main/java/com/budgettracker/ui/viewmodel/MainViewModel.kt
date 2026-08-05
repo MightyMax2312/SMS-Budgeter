@@ -30,6 +30,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getInstanceWithoutEncryption(application)
     private val repository = TransactionRepository(db.transactionDao())
     private val workManager = WorkManager.getInstance(application)
+    private val homeOpenSyncGate = HomeOpenSyncGate()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -171,20 +172,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun triggerManualSync() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val req = OneTimeWorkRequestBuilder<SmsSyncWorker>().build()
-                workManager.enqueueUniqueWork(
-                    SmsSyncWorker.WORK_NAME,
-                    ExistingWorkPolicy.REPLACE,
-                    req
-                )
-                workManager.getWorkInfoByIdFlow(req.id).collect { info ->
-                    if (info.state.isFinished) _isLoading.value = false
-                }
-            } catch (e: Exception) { _isLoading.value = false }
-        }
+        enqueueSmsSync(showLoading = true)
+    }
+
+    fun syncWhenHomeScreenOpens() {
+        if (!homeOpenSyncGate.shouldSyncOnHomeOpened(isHomeScreenVisible = true)) return
+        enqueueSmsSync(showLoading = false)
     }
 
     fun deleteAllTransactions() {
@@ -274,6 +267,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         workManager.enqueueUniquePeriodicWork(
             SmsSyncWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, work
         )
+    }
+
+    private fun enqueueSmsSync(showLoading: Boolean) {
+        viewModelScope.launch {
+            if (showLoading) _isLoading.value = true
+            try {
+                val req = OneTimeWorkRequestBuilder<SmsSyncWorker>().build()
+                workManager.enqueueUniqueWork(
+                    SmsSyncWorker.WORK_NAME,
+                    ExistingWorkPolicy.REPLACE,
+                    req
+                )
+                if (showLoading) {
+                    workManager.getWorkInfoByIdFlow(req.id).collect { info ->
+                        if (info.state.isFinished) _isLoading.value = false
+                    }
+                }
+            } catch (e: Exception) {
+                if (showLoading) _isLoading.value = false
+            }
+        }
     }
 
     private fun startOfTodayMillis(): Long {
