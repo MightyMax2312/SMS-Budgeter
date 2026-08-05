@@ -9,10 +9,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerSnapDistance
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -28,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,6 +47,7 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -132,15 +140,46 @@ fun HomeScreen(
                 selectedPage = pagerState.currentPage,
                 monthSpent = uiState.monthDebits,
                 onPageClick = { page ->
-                    coroutineScope.launch { pagerState.animateScrollToPage(page) }
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(
+                            page,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        )
+                    }
                 }
             )
 
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                pageSpacing = 10.dp,
+                flingBehavior = PagerDefaults.flingBehavior(
+                    state = pagerState,
+                    pagerSnapDistance = PagerSnapDistance.atMost(1),
+                    snapAnimationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
             ) { page ->
-                val pageTransactions = when (page) {
+                val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                val pageProgress = abs(pageOffset).coerceIn(0f, 1f)
+                val pageScale = 1f - 0.06f * pageProgress
+                val pageAlpha = 1f - 0.10f * pageProgress
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = pageScale
+                            scaleY = pageScale
+                            alpha = pageAlpha
+                        }
+                ) {
+                    val pageTransactions = when (page) {
                     0 -> dailyTransactions
                     1 -> monthTransactions
                     else -> historyTransactions
@@ -235,6 +274,7 @@ fun HomeScreen(
                         }
                     }
                 }
+                }
             }
         }
     }
@@ -287,15 +327,40 @@ private fun SwipePageTabs(
     ) {
         tabs.forEachIndexed { index, tab ->
             val selected = selectedPage == index
+            val bg by animateColorAsState(
+                targetValue = if (selected) palette.ink else palette.paperDeep,
+                animationSpec = tween(durationMillis = 240),
+                label = "tabBg"
+            )
+            val borderColor by animateColorAsState(
+                targetValue = if (selected) palette.ink else palette.line.copy(alpha = 0.65f),
+                animationSpec = tween(durationMillis = 240),
+                label = "tabBorder"
+            )
+            val fg by animateColorAsState(
+                targetValue = if (selected) Color.Black else palette.ink,
+                animationSpec = tween(durationMillis = 240),
+                label = "tabFg"
+            )
+            val captionFg by animateColorAsState(
+                targetValue = if (selected) Color.Black.copy(alpha = 0.58f) else palette.quietInk,
+                animationSpec = tween(durationMillis = 240),
+                label = "tabCaption"
+            )
+            val dotColor by animateColorAsState(
+                targetValue = if (selected) Color.Black else palette.cream,
+                animationSpec = tween(durationMillis = 240),
+                label = "tabDot"
+            )
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .height(54.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (selected) palette.ink else palette.paperDeep)
+                    .background(bg)
                     .border(
                         width = 1.dp,
-                        color = if (selected) palette.ink else palette.line.copy(alpha = 0.65f),
+                        color = borderColor,
                         shape = RoundedCornerShape(24.dp)
                     )
                     .clickable { onPageClick(index) }
@@ -307,33 +372,33 @@ private fun SwipePageTabs(
                     0 -> Icon(
                         Icons.Default.Home,
                         contentDescription = null,
-                        tint = if (selected) Color.Black else palette.ink,
+                        tint = fg,
                         modifier = Modifier.size(17.dp)
                     )
                     1 -> Box(
                         modifier = Modifier
                             .size(11.dp)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(if (selected) Color.Black else palette.cream)
+                            .background(dotColor)
                     )
                     else -> Icon(
                         Icons.Default.DateRange,
                         contentDescription = null,
-                        tint = if (selected) Color.Black else palette.ink,
+                        tint = fg,
                         modifier = Modifier.size(16.dp)
                     )
                 }
                 Column {
                     Text(
                         text = tab.title,
-                        color = if (selected) Color.Black else palette.ink,
+                        color = fg,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Black,
                         maxLines = 1
                     )
                     Text(
                         text = tab.caption,
-                        color = if (selected) Color.Black.copy(alpha = 0.58f) else palette.quietInk,
+                        color = captionFg,
                         style = MaterialTheme.typography.labelSmall,
                         maxLines = 1
                     )
