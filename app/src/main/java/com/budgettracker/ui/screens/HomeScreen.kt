@@ -158,7 +158,7 @@ fun HomeScreen(
                 pageSpacing = 10.dp,
                 flingBehavior = PagerDefaults.flingBehavior(
                     state = pagerState,
-                    pagerSnapDistance = PagerSnapDistance.atMost(1),
+                    pagerSnapDistance = PagerSnapDistance.atMost(3),
                     snapAnimationSpec = spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessMedium
