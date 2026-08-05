@@ -51,6 +51,7 @@ class SmsSyncWorker(
 
     companion object {
         const val WORK_NAME = "sms_sync_worker"
+        const val ONETIME_WORK_NAME = "sms_sync_onetime_worker"
     }
 }
 

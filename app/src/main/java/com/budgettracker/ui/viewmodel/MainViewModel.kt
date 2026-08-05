@@ -1,6 +1,9 @@
 package com.budgettracker.ui.viewmodel
 
+import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.*
@@ -16,7 +19,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
@@ -30,7 +37,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getInstanceWithoutEncryption(application)
     private val repository = TransactionRepository(db.transactionDao())
     private val workManager = WorkManager.getInstance(application)
-    private val homeOpenSyncGate = HomeOpenSyncGate()
+    private var foregroundPollJob: Job? = null
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -175,9 +182,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         enqueueSmsSync(showLoading = true)
     }
 
-    fun syncWhenHomeScreenOpens() {
-        if (!homeOpenSyncGate.shouldSyncOnHomeOpened(isHomeScreenVisible = true)) return
-        enqueueSmsSync(showLoading = false)
+    /**
+     * While the app is in the foreground, re-read SMS every 30 seconds.
+     * An immediate sync runs first, then ticks at the 30s, 60s, ... marks.
+     */
+    fun startForegroundPolling() {
+        foregroundPollJob?.cancel()
+        foregroundPollJob = viewModelScope.launch {
+            while (isActive) {
+                if (!isOneTimeSyncInFlight()) {
+                    enqueueSmsSync(showLoading = false)
+                }
+                delay(30_000)
+            }
+        }
+    }
+
+    fun stopForegroundPolling() {
+        foregroundPollJob?.cancel()
+        foregroundPollJob = null
     }
 
     fun deleteAllTransactions() {
@@ -270,12 +293,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun enqueueSmsSync(showLoading: Boolean) {
+        if (!hasSmsPermission()) {
+            if (showLoading) _isLoading.value = false
+            return
+        }
         viewModelScope.launch {
             if (showLoading) _isLoading.value = true
             try {
                 val req = OneTimeWorkRequestBuilder<SmsSyncWorker>().build()
                 workManager.enqueueUniqueWork(
-                    SmsSyncWorker.WORK_NAME,
+                    SmsSyncWorker.ONETIME_WORK_NAME,
                     ExistingWorkPolicy.REPLACE,
                     req
                 )
@@ -288,6 +315,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (showLoading) _isLoading.value = false
             }
         }
+    }
+
+    /** True when a one-time SMS sync is still pending or running (REPLACE dedup + skip guard). */
+    private suspend fun isOneTimeSyncInFlight(): Boolean {
+        val infos = workManager.getWorkInfosForUniqueWorkFlow(SmsSyncWorker.ONETIME_WORK_NAME).first()
+        return infos.any { !it.state.isFinished }
+    }
+
+    private fun hasSmsPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            getApplication(),
+            Manifest.permission.READ_SMS
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun startOfTodayMillis(): Long {

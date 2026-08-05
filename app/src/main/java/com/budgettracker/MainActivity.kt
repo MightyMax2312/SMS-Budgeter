@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.mutableLongStateOf
 import com.budgettracker.ui.screens.HomeScreen
@@ -44,6 +46,19 @@ class MainActivity : ComponentActivity() {
                 val isLoading by vm.isLoading.collectAsState()
                 val onboardingDone by vm.isOnboardingCompleted.collectAsState()
 
+                DisposableEffect(Unit) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_START ->
+                                if (vm.isOnboardingCompleted.value) vm.startForegroundPolling()
+                            Lifecycle.Event.ON_STOP -> vm.stopForegroundPolling()
+                            else -> Unit
+                        }
+                    }
+                    lifecycle.addObserver(observer)
+                    onDispose { lifecycle.removeObserver(observer) }
+                }
+
                 var showPopup by remember { mutableStateOf(false) }
                 var popupTransaction by remember { mutableStateOf<SlimTransaction?>(null) }
                 var showResyncPicker by remember { mutableStateOf(false) }
@@ -62,9 +77,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         onboardingDone -> {
-                            LaunchedEffect(Unit) {
-                                vm.syncWhenHomeScreenOpens()
-                            }
                             HomeScreen(
                                 uiState = uiState,
                                 isLoading = isLoading,
