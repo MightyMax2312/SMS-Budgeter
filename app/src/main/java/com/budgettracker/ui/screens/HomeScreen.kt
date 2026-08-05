@@ -144,8 +144,8 @@ fun HomeScreen(
                         pagerState.animateScrollToPage(
                             page,
                             animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
                             )
                         )
                     }
@@ -160,15 +160,14 @@ fun HomeScreen(
                     state = pagerState,
                     pagerSnapDistance = PagerSnapDistance.atMost(1),
                     snapAnimationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
                     )
                 )
             ) { page ->
                 val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                 val pageProgress = abs(pageOffset).coerceIn(0f, 1f)
-                val pageScale = 1f - 0.06f * pageProgress
-                val pageAlpha = 1f - 0.10f * pageProgress
+                val pageScale = 1f - 0.03f * pageProgress
 
                 Box(
                     modifier = Modifier
@@ -176,7 +175,6 @@ fun HomeScreen(
                         .graphicsLayer {
                             scaleX = pageScale
                             scaleY = pageScale
-                            alpha = pageAlpha
                         }
                 ) {
                     val pageTransactions = when (page) {
