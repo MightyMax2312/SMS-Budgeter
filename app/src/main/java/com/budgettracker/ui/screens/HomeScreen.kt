@@ -673,15 +673,19 @@ private fun TodayPreviewCard(
         }
 
         Column {
-            Text(
-                text = formatStatementCurrency(uiState.todayBalance),
-                color = if (uiState.todayBalance >= 0) palette.cream else palette.clay,
-                fontSize = 26.sp,
-                lineHeight = 30.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = NumeralFont,
-                maxLines = 1
-            )
+            BoxWithConstraints {
+                val balanceText = formatStatementCurrency(uiState.todayBalance)
+                val balanceFontSize = fitFontSize(balanceText.length, maxWidth, max = 26f, min = 13f)
+                Text(
+                    text = balanceText,
+                    color = if (uiState.todayBalance >= 0) palette.cream else palette.clay,
+                    fontSize = balanceFontSize.sp,
+                    lineHeight = (balanceFontSize * 1.15f).sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = NumeralFont,
+                    maxLines = 1
+                )
+            }
             Text(
                 text = "Net today",
                 color = palette.quietInk,
@@ -751,21 +755,19 @@ private fun MonthSpendingsCard(
         }
 
         Column {
-            val monthAmount = formatStatementCurrency(uiState.monthDebits)
-            val monthAmountSize = when {
-                monthAmount.length > 12 -> 15.sp
-                monthAmount.length > 9 -> 18.sp
-                else -> 22.sp
+            BoxWithConstraints {
+                val monthAmount = formatStatementCurrency(uiState.monthDebits)
+                val monthAmountSize = fitFontSize(monthAmount.length, maxWidth, max = 22f, min = 12f)
+                Text(
+                    text = monthAmount,
+                    color = palette.ink,
+                    fontSize = monthAmountSize.sp,
+                    lineHeight = (monthAmountSize * 1.2f).sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = NumeralFont,
+                    maxLines = 1
+                )
             }
-            Text(
-                text = monthAmount,
-                color = palette.ink,
-                fontSize = monthAmountSize,
-                lineHeight = monthAmountSize,
-                fontWeight = FontWeight.Black,
-                fontFamily = NumeralFont,
-                maxLines = 1
-            )
             Text(
                 text = "Spent this month",
                 color = palette.quietInk,
