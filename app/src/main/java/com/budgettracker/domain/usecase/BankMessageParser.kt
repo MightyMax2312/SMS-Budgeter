@@ -49,12 +49,17 @@ class BankMessageParser {
 
         val creditPatterns = listOf(
             "\\bcredited\\b", "\\bcredit\\b", "\\bdeposited\\b", "\\breceived\\b",
-            "\\badded\\b", "\\bdeposit\\b"
+            "\\badded\\b", "\\bdeposit\\b",
+            "\\brefund(?:ed)?\\b", "\\breversal\\b", "\\breversed\\b", "\\bcashback\\b",
+            "\\breward\\b", "\\binterest\\b",
+            "\\btransfer(?:red)?\\s+from\\s+(?!your|ur\\b)"
         ).map { it.toRegex(RegexOption.IGNORE_CASE) }
 
         val debitPatterns = listOf(
             "\\bdebited\\b", "\\bdebit\\b", "\\bwithdrawn\\b", "\\bpaid\\b",
-            "\\bdeducted\\b", "\\bspent\\b", "\\btransfer\\b"
+            "\\bdeducted\\b", "\\bspent\\b",
+            "\\btransfer(?:red)?\\s+to\\b",
+            "\\btransfer(?:red)?\\s+from\\s+(?:your|ur\\b)"
         ).map { it.toRegex(RegexOption.IGNORE_CASE) }
 
         val creditScore = creditPatterns.count { it.containsMatchIn(lower) }

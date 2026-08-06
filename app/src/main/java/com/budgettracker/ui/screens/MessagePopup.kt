@@ -494,7 +494,7 @@ private fun DetailRow(label: String, value: String, isPositive: Boolean = true) 
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        val valueColor = if (isPositive) Color(0xFF2D6A4F) else MaterialTheme.colorScheme.error
+        val valueColor = if (isPositive) Color(0xFFC0F3A8) else MaterialTheme.colorScheme.error
         Text(
             text = value,
             fontSize = 15.sp,

@@ -59,6 +59,44 @@ class BankMessageParserTest {
     }
 
     @Test
+    fun refund_isCredit() {
+        val body = "Rs.500.00 refunded to your account. Ref 123456."
+        assertEquals(TransactionType.CREDIT, parsedType(body))
+        assertEquals(500.0, parsedAmount(body)!!, 0.001)
+    }
+
+    @Test
+    fun cashback_isCredit() {
+        val body = "Rs.50.00 cashback received on your card."
+        assertEquals(TransactionType.CREDIT, parsedType(body))
+    }
+
+    @Test
+    fun transferFromPerson_isCredit() {
+        val body = "Rs.1,000.00 transferred from Rakesh via UPI."
+        assertEquals(TransactionType.CREDIT, parsedType(body))
+        assertEquals(1000.0, parsedAmount(body)!!, 0.001)
+    }
+
+    @Test
+    fun transferFromYourAccount_isDebit() {
+        val body = "Rs.1,000.00 transferred from your A/c *1234 to Rakesh."
+        assertEquals(TransactionType.DEBIT, parsedType(body))
+    }
+
+    @Test
+    fun transferToPerson_isDebit() {
+        val body = "Rs.1,000.00 transferred to Rakesh."
+        assertEquals(TransactionType.DEBIT, parsedType(body))
+    }
+
+    @Test
+    fun reversal_isCredit() {
+        val body = "Rs.200.00 reversal of previous transaction."
+        assertEquals(TransactionType.CREDIT, parsedType(body))
+    }
+
+    @Test
     fun mandate_isSkipped() {
         val body = "UPI Mandate created for Rs.500.00 on 05-08-26."
         assertNull(parser.parseBankSms(sms(body)))

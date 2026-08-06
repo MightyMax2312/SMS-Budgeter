@@ -107,7 +107,7 @@ private fun TypeSelector(
                 modifier = Modifier
                     .weight(1f)
                     .background(
-                        color = if (selected) Color(0xFF18261E) else Color.Transparent,
+                        color = if (selected) Color(0xFF0C0C0C) else Color.Transparent,
                         shape = RoundedCornerShape(12.dp)
                     )
                     .clickable { onSelect(type) }

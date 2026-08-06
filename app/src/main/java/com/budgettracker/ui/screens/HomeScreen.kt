@@ -314,15 +314,15 @@ fun HomeScreen(
 }
 
 private object StatementPalette {
-    val paper = Color(0xFF070807)
-    val paperDeep = Color(0xFF141614)
-    val moss = Color(0xFF1A1D1A)
-    val mossDark = Color(0xFF0D0F0D)
-    val ink = Color(0xFFF4F5EF)
-    val quietInk = Color(0xFF8F948D)
-    val line = Color(0xFF2B302B)
+    val paper = Color(0xFF0C0C0C)
+    val paperDeep = Color(0xFF131313)
+    val moss = Color(0xFF181818)
+    val mossDark = Color(0xFF090909)
+    val ink = Color(0xFFFFFFFF)
+    val quietInk = Color(0xFF8A8A8A)
+    val line = Color(0xFF262626)
     val clay = Color(0xFFE0704E)
-    val cream = Color(0xFFA7F26D)
+    val cream = Color(0xFFC0F3A8)
     val white = Color(0xFFFFFFFF)
 }
 
@@ -1440,14 +1440,14 @@ private fun FittedAmountText(
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
-            text = "Rs",
+            text = if (fullText.startsWith("-")) "-Rs" else "Rs",
             color = color.copy(alpha = 0.72f),
             fontSize = (fittedSize * 0.55f).sp,
             fontWeight = FontWeight.Bold,
             fontFamily = NumeralFont
         )
         Text(
-            text = fullText.removePrefix("Rs"),
+            text = fullText.removePrefix("-").removePrefix("Rs"),
             color = color,
             fontSize = fittedSize.sp,
             lineHeight = (fittedSize * lineHeightFactor).sp,
@@ -2009,15 +2009,20 @@ private fun formatStatementCurrency(amount: Double): String {
         minimumFractionDigits = 1
         maximumFractionDigits = 2
     }
-    return "Rs" + format.format(amount)
+    return if (amount < 0) {
+        "-Rs" + format.format(-amount)
+    } else {
+        "Rs" + format.format(amount)
+    }
 }
 
 private fun formatCompactCurrency(amount: Double): String {
     val absAmount = kotlin.math.abs(amount)
+    val prefix = if (amount < 0) "-Rs" else "Rs"
     return when {
-        absAmount >= 10000000 -> "Rs" + formatCompactNumber(amount / 10000000) + "Cr"
-        absAmount >= 100000 -> "Rs" + formatCompactNumber(amount / 100000) + "L"
-        absAmount >= 1000 -> "Rs" + formatCompactNumber(amount / 1000) + "K"
+        absAmount >= 10000000 -> prefix + formatCompactNumber(absAmount / 10000000) + "Cr"
+        absAmount >= 100000 -> prefix + formatCompactNumber(absAmount / 100000) + "L"
+        absAmount >= 1000 -> prefix + formatCompactNumber(absAmount / 1000) + "K"
         else -> formatStatementCurrency(amount)
     }
 }

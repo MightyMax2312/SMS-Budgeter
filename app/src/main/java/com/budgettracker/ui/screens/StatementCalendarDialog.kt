@@ -373,12 +373,12 @@ private fun RowScope.DayCell(
 }
 
 private object CalendarPalette {
-    val paper = Color(0xFFC9CEB9)
-    val paperDeep = Color(0xFFB8BEA8)
-    val ink = Color(0xFF18261E)
-    val quietInk = Color(0xFF828978)
-    val line = Color(0xFF7F8775)
-    val cream = Color(0xFFE4E6D4)
+    val paper = Color(0xFF0C0C0C)
+    val paperDeep = Color(0xFF131313)
+    val ink = Color(0xFFFFFFFF)
+    val quietInk = Color(0xFF8A8A8A)
+    val line = Color(0xFF262626)
+    val cream = Color(0xFFC0F3A8)
 }
 
 private fun Long.coerceDayIn(minDate: Long, maxDate: Long): Long {
