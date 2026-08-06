@@ -1408,10 +1408,17 @@ private fun DailyAllowanceCircle(
             strokeWidth = 8.dp
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            val circleText = "${formatWholeAmount(spent)}/${formatCompactWhole(allowed)}"
+            val circleFontSize = when {
+                circleText.length > 14 -> 11.sp
+                circleText.length > 11 -> 13.sp
+                circleText.length > 8 -> 15.sp
+                else -> 18.sp
+            }
             Text(
-                text = "${formatWholeAmount(spent)}/${formatWholeAmount(allowed)}",
+                text = circleText,
                 color = if (overLimit) palette.clay else palette.ink,
-                fontSize = 18.sp,
+                fontSize = circleFontSize,
                 fontWeight = FontWeight.Black,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 maxLines = 1
@@ -1931,6 +1938,17 @@ private fun formatCompactCurrency(amount: Double): String {
         absAmount >= 100000 -> "Rs" + formatCompactNumber(amount / 100000) + "L"
         absAmount >= 1000 -> "Rs" + formatCompactNumber(amount / 1000) + "K"
         else -> formatStatementCurrency(amount)
+    }
+}
+
+/** Compact Indian notation without the currency prefix, e.g. 5L, 1.2K, 1,200. */
+private fun formatCompactWhole(amount: Double): String {
+    val absAmount = kotlin.math.abs(amount)
+    return when {
+        absAmount >= 10000000 -> formatCompactNumber(amount / 10000000) + "Cr"
+        absAmount >= 100000 -> formatCompactNumber(amount / 100000) + "L"
+        absAmount >= 1000 -> formatCompactNumber(amount / 1000) + "K"
+        else -> formatWholeAmount(amount)
     }
 }
 
