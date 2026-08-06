@@ -559,7 +559,7 @@ private fun MonthPageSummary(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(168.dp),
+                .height(196.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             MonthSpendingsCard(
@@ -749,11 +749,17 @@ private fun MonthSpendingsCard(
         }
 
         Column {
+            val monthAmount = formatStatementCurrency(uiState.monthDebits)
+            val monthAmountSize = when {
+                monthAmount.length > 12 -> 15.sp
+                monthAmount.length > 9 -> 18.sp
+                else -> 22.sp
+            }
             Text(
-                text = formatStatementCurrency(uiState.monthDebits),
+                text = monthAmount,
                 color = palette.ink,
-                fontSize = 22.sp,
-                lineHeight = 26.sp,
+                fontSize = monthAmountSize,
+                lineHeight = monthAmountSize,
                 fontWeight = FontWeight.Black,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 maxLines = 1
@@ -801,7 +807,7 @@ private fun MonthlySavingsCard(
             .background(palette.moss)
             .border(1.dp, palette.line.copy(alpha = 0.42f), RoundedCornerShape(24.dp))
             .clickable { onSavingsTargetClick() }
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -852,7 +858,9 @@ private fun MonthlySavingsCard(
             color = palette.quietInk,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
-            maxLines = 1
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
