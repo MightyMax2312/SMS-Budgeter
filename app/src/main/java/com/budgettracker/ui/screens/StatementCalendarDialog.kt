@@ -143,7 +143,7 @@ fun StatementCalendarDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(270.dp),
-                        beyondBoundsPageCount = 1,
+                        beyondViewportPageCount = 1,
                         pageSpacing = 14.dp
                     ) { page ->
                         CalendarGrid(

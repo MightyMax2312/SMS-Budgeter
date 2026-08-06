@@ -163,6 +163,7 @@ fun HomeScreen(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
                 pageSpacing = 10.dp,
+                beyondViewportPageCount = 1,
                 flingBehavior = PagerDefaults.flingBehavior(
                     state = pagerState,
                     pagerSnapDistance = PagerSnapDistance.atMost(3),
