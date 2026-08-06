@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -132,10 +133,14 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .background(palette.paper)
         ) {
             SwipePageTabs(
@@ -276,6 +281,22 @@ fun HomeScreen(
                 }
                 }
             }
+        }
+
+        if (showQuickActions) {
+            // Swallow any tap outside the menu: it only closes the menu,
+            // the underlying content is not touched until the menu is closed.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        showQuickActions = false
+                    }
+            )
+        }
         }
     }
 
