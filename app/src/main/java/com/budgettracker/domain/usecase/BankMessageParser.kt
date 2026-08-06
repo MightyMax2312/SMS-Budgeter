@@ -60,33 +60,73 @@ class BankMessageParser {
         val creditScore = creditPatterns.count { it.containsMatchIn(lower) }
         val debitScore = debitPatterns.count { it.containsMatchIn(lower) }
 
-        return if (creditScore > debitScore) TransactionType.CREDIT else TransactionType.DEBIT
+        return when {
+            creditScore > debitScore -> TransactionType.CREDIT
+            debitScore > creditScore -> TransactionType.DEBIT
+            // Tie (e.g. "transfer received"): credit keywords like received/
+            // credited are the more specific signal, so default to CREDIT
+            creditScore > 0 -> TransactionType.CREDIT
+            else -> TransactionType.DEBIT
+        }
     }
 
     private fun extractAmount(body: String): Double? {
-        val patterns = listOf(
-            """(?:INR|Rs\.?|Rs)\s*([\d,]+\.?\d*)""".toRegex(RegexOption.IGNORE_CASE),
-            """([\d,]+\.\d{2})\s*(?:INR|Rs)""".toRegex(RegexOption.IGNORE_CASE),
-            """(?:Rs\.?\s*)?([\d,]+\.\d{2})""".toRegex(RegexOption.IGNORE_CASE),
-            """debit(?:ed)?\s*(?:INR|Rs\.?)?\s*([\d,]+\.?\d*)""".toRegex(RegexOption.IGNORE_CASE),
-            """credit(?:ed)?(?:by)?\s*(?:INR|Rs\.?)?\s*([\d,]+\.?\d*)""".toRegex(RegexOption.IGNORE_CASE)
-        )
+        val candidates = mutableListOf<Pair<Int, Double>>() // token position -> amount
 
-        for (pattern in patterns) {
-            val match = pattern.find(body)
-            if (match != null) {
-                val amountStr = match.groupValues[1]
-                    .replace(",", "")
-                    .replace(" ", "")
-                    .trim()
+        // Currency-anchored amounts: Rs / INR / ₹ before or after the number
+        Regex("""(?:INR|Rs\.?|Rs|₹)\s*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+            .findAll(body)
+            .forEach { m ->
+                parseAmount(m.groupValues[1])?.let { candidates += m.range.first to it }
+            }
+        Regex("""([\d,]+\.\d{2})\s*(?:INR|Rs|₹)""", RegexOption.IGNORE_CASE)
+            .findAll(body)
+            .forEach { m ->
+                parseAmount(m.groupValues[1])?.let { candidates += m.range.first to it }
+            }
 
-                val amount = amountStr.toDoubleOrNull()
-                if (amount != null && amount > 0) {
-                    return amount
+        // Bare two-decimal amounts as a fallback — but never part of a date
+        // (12.03.2025) and never an implausibly large reference number (UTR …012.00)
+        Regex("""(?<![\d.,])([\d,]+\.\d{2})(?![\d.])""", RegexOption.IGNORE_CASE)
+            .findAll(body)
+            .forEach { m ->
+                val amount = parseAmount(m.groupValues[1])
+                if (amount != null && amount < 1_000_000_000) {
+                    candidates += m.range.first to amount
                 }
             }
+
+        if (candidates.isEmpty()) return null
+
+        // Drop balance readings: "Avl Bal Rs.X" or "Rs.X Avl Bal"
+        val balanceMarkers = Regex(
+            """\b(?:avl\.?\s*bal(?:ance)?|available\s*balance|avail\s*bal(?:ance)?|bal(?:ance)?)\b""",
+            RegexOption.IGNORE_CASE
+        ).findAll(body).map { it.range }.toList()
+        val filtered = candidates.filter { (pos, _) ->
+            balanceMarkers.none { m ->
+                (pos >= m.last - 2 && pos <= m.last + 14) || // marker immediately before amount
+                    (pos <= m.first && (m.first - pos) <= 8) // amount immediately before marker
+            }
         }
-        return null
+
+        // Prefer the candidate nearest to a transaction keyword
+        val keywords = Regex(
+            """debited|debit|credited|credit|deposited|withdrawn|received|added|paid|spent|deducted""",
+            RegexOption.IGNORE_CASE
+        ).findAll(body).map { it.range.first }.toList()
+
+        fun distance(pos: Int): Int =
+            if (keywords.isEmpty()) Int.MAX_VALUE else keywords.minOf { kotlin.math.abs(it - pos) }
+
+        val pool = if (filtered.isNotEmpty()) filtered else candidates
+        return pool.minByOrNull { (pos, _) -> distance(pos) }?.second
+    }
+
+    private fun parseAmount(raw: String): Double? {
+        val cleaned = raw.replace(",", "").replace(" ", "").trim()
+        val amount = cleaned.toDoubleOrNull()
+        return if (amount != null && amount > 0) amount else null
     }
 
     private fun extractAccountLast4(body: String): String {
