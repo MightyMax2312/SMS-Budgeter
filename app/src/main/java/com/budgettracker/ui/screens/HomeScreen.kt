@@ -37,9 +37,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budgettracker.domain.model.BankFilter
+import com.budgettracker.ui.theme.NumeralFont
 import com.budgettracker.ui.viewmodel.HomeUiState
 import com.budgettracker.ui.viewmodel.SlimTransaction
 import com.budgettracker.ui.viewmodel.TransactionFilter
@@ -677,7 +679,7 @@ private fun TodayPreviewCard(
                 fontSize = 26.sp,
                 lineHeight = 30.sp,
                 fontWeight = FontWeight.Black,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontFamily = NumeralFont,
                 maxLines = 1
             )
             Text(
@@ -761,7 +763,7 @@ private fun MonthSpendingsCard(
                 fontSize = monthAmountSize,
                 lineHeight = monthAmountSize,
                 fontWeight = FontWeight.Black,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontFamily = NumeralFont,
                 maxLines = 1
             )
             Text(
@@ -892,7 +894,7 @@ private fun SavingsProgressCircle(
                 color = if (overBudget) palette.clay else palette.cream,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Black,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontFamily = NumeralFont,
                 maxLines = 1
             )
             Text(
@@ -996,7 +998,7 @@ private fun LastSevenDaysBarChart(
                 color = palette.ink,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                fontFamily = NumeralFont
             )
             Spacer(Modifier.height(6.dp))
             DottedGuideLine()
@@ -1147,7 +1149,7 @@ private fun MiniMetric(
     Column(modifier = modifier) {
         Text(
             text = label.uppercase(Locale.getDefault()),
-            color = palette.paper.copy(alpha = 0.68f),
+            color = palette.ink,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium
         )
@@ -1156,7 +1158,7 @@ private fun MiniMetric(
             color = tint,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = NumeralFont,
             maxLines = 1
         )
     }
@@ -1180,29 +1182,30 @@ private fun MonthBalanceStrip(
             .padding(18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .weight(1.05f)
                 .clickable { onFilterChange(TransactionFilter.ALL) }
         ) {
-            Text(
-                text = formatStatementCurrency(uiState.monthBalance),
-                color = if (uiState.monthBalance >= 0) palette.cream else palette.clay,
-                fontSize = 31.sp,
-                lineHeight = 34.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                maxLines = 1
-            )
-            Text(
-                text = "Available this month",
-                color = palette.ink.copy(alpha = 0.78f),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            val balanceText = formatStatementCurrency(uiState.monthBalance)
+            val balanceFontSize = fitFontSize(balanceText.length, maxWidth, max = 31f, min = 13f)
+            Column {
+                FittedAmountText(
+                    fullText = balanceText,
+                    fittedSize = balanceFontSize,
+                    color = if (uiState.monthBalance >= 0) palette.cream else palette.clay,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    text = "Available this month",
+                    color = palette.ink.copy(alpha = 0.78f),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
 
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .weight(0.95f)
                 .border(
@@ -1214,20 +1217,22 @@ private fun MonthBalanceStrip(
                 .clickable { onFilterChange(TransactionFilter.CREDIT) }
                 .padding(8.dp)
         ) {
-            Text(
-                text = formatStatementCurrency(uiState.monthCredits),
-                color = palette.ink,
-                fontSize = 20.sp,
-                lineHeight = 24.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                maxLines = 1
-            )
-            Text(
-                text = "Month credits",
-                color = palette.quietInk,
-                style = MaterialTheme.typography.labelSmall
-            )
+            val creditsText = formatStatementCurrency(uiState.monthCredits)
+            val creditsFontSize = fitFontSize(creditsText.length, maxWidth - 16.dp, max = 20f, min = 11f)
+            Column {
+                FittedAmountText(
+                    fullText = creditsText,
+                    fittedSize = creditsFontSize,
+                    color = palette.ink,
+                    fontWeight = FontWeight.Bold,
+                    lineHeightFactor = 1.2f
+                )
+                Text(
+                    text = "Month credits",
+                    color = palette.quietInk,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
         }
 
         IconButton(
@@ -1264,29 +1269,30 @@ private fun BalanceStrip(
             .padding(18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .weight(1.05f)
                 .clickable { onFilterChange(TransactionFilter.ALL) }
         ) {
-            Text(
-                text = formatStatementCurrency(uiState.balance),
-                color = if (uiState.balance >= 0) palette.cream else palette.clay,
-                fontSize = 31.sp,
-                lineHeight = 34.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                maxLines = 1
-            )
-            Text(
-                text = "Available",
-                color = palette.cream.copy(alpha = 0.78f),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            val balanceText = formatStatementCurrency(uiState.balance)
+            val balanceFontSize = fitFontSize(balanceText.length, maxWidth, max = 31f, min = 13f)
+            Column {
+                FittedAmountText(
+                    fullText = balanceText,
+                    fittedSize = balanceFontSize,
+                    color = if (uiState.balance >= 0) palette.cream else palette.clay,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    text = "Available",
+                    color = palette.cream.copy(alpha = 0.78f),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
 
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .weight(0.95f)
                 .border(
@@ -1298,20 +1304,22 @@ private fun BalanceStrip(
                 .clickable { onFilterChange(TransactionFilter.CREDIT) }
                 .padding(8.dp)
         ) {
-            Text(
-                text = formatStatementCurrency(uiState.totalCredits),
-                color = palette.cream,
-                fontSize = 20.sp,
-                lineHeight = 24.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                maxLines = 1
-            )
-            Text(
-                text = "Credits imported",
-                color = palette.cream.copy(alpha = 0.68f),
-                style = MaterialTheme.typography.labelSmall
-            )
+            val creditsText = formatStatementCurrency(uiState.totalCredits)
+            val creditsFontSize = fitFontSize(creditsText.length, maxWidth - 16.dp, max = 20f, min = 11f)
+            Column {
+                FittedAmountText(
+                    fullText = creditsText,
+                    fittedSize = creditsFontSize,
+                    color = palette.cream,
+                    fontWeight = FontWeight.Bold,
+                    lineHeightFactor = 1.2f
+                )
+                Text(
+                    text = "Credits imported",
+                    color = palette.cream.copy(alpha = 0.68f),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
         }
 
         IconButton(
@@ -1396,6 +1404,37 @@ private fun DailyAllowancePanel(
 }
 
 @Composable
+private fun FittedAmountText(
+    fullText: String,
+    fittedSize: Float,
+    color: Color,
+    fontWeight: FontWeight,
+    lineHeightFactor: Float = 1.15f
+) {
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = "Rs",
+            color = color.copy(alpha = 0.72f),
+            fontSize = (fittedSize * 0.55f).sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = NumeralFont
+        )
+        Text(
+            text = fullText.removePrefix("Rs"),
+            color = color,
+            fontSize = fittedSize.sp,
+            lineHeight = (fittedSize * lineHeightFactor).sp,
+            fontWeight = fontWeight,
+            fontFamily = NumeralFont,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
 private fun DailyAllowanceCircle(
     spent: Double,
     allowed: Double,
@@ -1428,7 +1467,7 @@ private fun DailyAllowanceCircle(
                 color = if (overLimit) palette.clay else palette.ink,
                 fontSize = circleFontSize,
                 fontWeight = FontWeight.Black,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontFamily = NumeralFont,
                 maxLines = 1
             )
             Text(
@@ -1884,7 +1923,7 @@ private fun TransactionRow(item: SlimTransaction, onClick: () -> Unit) {
             color = if (item.isCredit) palette.cream else palette.clay,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = NumeralFont,
             textAlign = TextAlign.End
         )
     }
@@ -1929,6 +1968,16 @@ private fun EmptyState(onSyncClick: () -> Unit) {
             Text("Sync SMS Messages")
         }
     }
+}
+
+/**
+ * Font size (in sp) that fits [charCount] JetBrains-Mono-width characters
+ * (advance ≈ 0.6em, plus safety margin) into [maxWidth].
+ */
+private fun fitFontSize(charCount: Int, maxWidth: Dp, max: Float = 31f, min: Float = 12f): Float {
+    if (charCount <= 0) return max
+    val available = (maxWidth - 4.dp).value.coerceAtLeast(1f)
+    return (available / (charCount * 0.62f)).coerceIn(min, max)
 }
 
 private fun formatStatementCurrency(amount: Double): String {
